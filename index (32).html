@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>deposible — AI Creations</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#08080c;--bg2:#0e0e16;--bg3:#161624;
+  --accent:#f0a030;--accent2:#ff6b2b;--accent-glow:rgba(240,160,48,.15);
+  --text:#d8d8e0;--text2:#6a6a80;--text3:#3a3a50;
+  --card-bg:#0c0c14;--card-border:#1a1a2e;
+  --radius:14px;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);
+  min-height:100vh;overflow-x:hidden;
+}
+
+/* GRAIN */
+body::after{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:9999;opacity:.6;
+}
+
+/* AMBIENT GLOW */
+.glow-1{
+  position:fixed;top:-200px;right:-100px;width:600px;height:600px;
+  background:radial-gradient(circle,rgba(240,160,48,.06),transparent 70%);
+  pointer-events:none;
+}
+.glow-2{
+  position:fixed;bottom:-300px;left:-150px;width:700px;height:700px;
+  background:radial-gradient(circle,rgba(255,107,43,.04),transparent 70%);
+  pointer-events:none;
+}
+
+/* HEADER */
+.header{
+  padding:60px 32px 40px;max-width:960px;margin:0 auto;
+  position:relative;z-index:1;
+}
+.header-label{
+  font-size:.65rem;letter-spacing:6px;text-transform:uppercase;
+  color:var(--accent);margin-bottom:16px;
+  opacity:0;animation:fadeUp .6s ease forwards;
+}
+.header h1{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2rem,5vw,3.2rem);
+  line-height:1.1;letter-spacing:-1px;
+  background:linear-gradient(135deg,var(--text),var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  opacity:0;animation:fadeUp .6s ease .1s forwards;
+}
+.header p{
+  margin-top:14px;font-size:.85rem;color:var(--text2);
+  max-width:520px;line-height:1.7;
+  opacity:0;animation:fadeUp .6s ease .2s forwards;
+}
+.header-line{
+  width:60px;height:2px;background:linear-gradient(90deg,var(--accent),transparent);
+  margin-top:24px;
+  opacity:0;animation:fadeUp .6s ease .3s forwards;
+}
+
+/* STATUS */
+.status-bar{
+  max-width:960px;margin:0 auto 32px;padding:0 32px;
+  display:flex;align-items:center;gap:12px;
+  opacity:0;animation:fadeUp .6s ease .35s forwards;
+  position:relative;z-index:1;
+}
+.status-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 8px var(--accent);
+  animation:pulse 2s ease-in-out infinite;
+}
+.status-text{font-size:.7rem;color:var(--text2);letter-spacing:2px;text-transform:uppercase}
+.file-count{
+  margin-left:auto;font-size:.7rem;color:var(--text3);letter-spacing:1px;
+}
+
+/* GRID */
+.grid{
+  max-width:960px;margin:0 auto;padding:0 32px 80px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:14px;position:relative;z-index:1;
+}
+
+/* CARD */
+.card{
+  background:var(--card-bg);border:1px solid var(--card-border);
+  border-radius:var(--radius);padding:24px;
+  cursor:pointer;transition:all .3s ease;position:relative;overflow:hidden;
+  text-decoration:none;color:inherit;display:block;
+  opacity:0;animation:fadeUp .5s ease forwards;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.card:hover{
+  border-color:rgba(240,160,48,.25);
+  transform:translateY(-3px);
+  box-shadow:0 12px 40px rgba(0,0,0,.4),0 0 30px var(--accent-glow);
+}
+.card:hover::before{opacity:1}
+
+.card-idx{
+  font-family:'Syne',sans-serif;font-size:.6rem;font-weight:700;
+  color:var(--text3);letter-spacing:3px;margin-bottom:12px;
+}
+.card-name{
+  font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;
+  color:var(--text);margin-bottom:6px;
+  word-break:break-word;transition:color .3s;
+}
+.card:hover .card-name{color:var(--accent)}
+
+.card-file{
+  font-size:.7rem;color:var(--text3);word-break:break-all;
+  margin-bottom:16px;
+}
+.card-arrow{
+  display:flex;align-items:center;gap:8px;
+  font-size:.7rem;color:var(--text2);letter-spacing:2px;
+  text-transform:uppercase;transition:color .3s;
+}
+.card:hover .card-arrow{color:var(--accent)}
+.card-arrow svg{transition:transform .3s}
+.card:hover .card-arrow svg{transform:translateX(4px)}
+
+/* LOADING */
+.loading{
+  text-align:center;padding:80px 32px;
+  font-size:.8rem;color:var(--text2);letter-spacing:2px;
+  position:relative;z-index:1;
+}
+.loading-spinner{
+  width:24px;height:24px;border:2px solid var(--text3);
+  border-top-color:var(--accent);border-radius:50%;
+  margin:0 auto 16px;animation:spin 1s linear infinite;
+}
+
+/* ERROR */
+.error-msg{
+  text-align:center;padding:60px 32px;
+  position:relative;z-index:1;
+}
+.error-msg h3{font-family:'Syne',sans-serif;font-size:1.2rem;color:var(--accent2);margin-bottom:8px}
+.error-msg p{font-size:.8rem;color:var(--text2);line-height:1.7;max-width:480px;margin:0 auto}
+
+/* EMPTY */
+.empty{
+  text-align:center;padding:60px 32px;color:var(--text2);
+  font-size:.85rem;position:relative;z-index:1;
+}
+
+/* FOOTER */
+.footer{
+  max-width:960px;margin:0 auto;padding:20px 32px 40px;
+  border-top:1px solid var(--card-border);
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:12px;position:relative;z-index:1;
+}
+.footer a{
+  font-size:.7rem;color:var(--text2);text-decoration:none;
+  letter-spacing:1px;transition:color .3s;
+}
+.footer a:hover{color:var(--accent)}
+.footer span{font-size:.65rem;color:var(--text3)}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(16px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{
+  0%,100%{opacity:1}
+  50%{opacity:.4}
+}
+
+@media(max-width:600px){
+  .header{padding:40px 20px 28px}
+  .grid,.status-bar,.footer{padding-left:20px;padding-right:20px}
+  .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="glow-1"></div>
+<div class="glow-2"></div>
+
+<div class="header">
+  <div class="header-label">deposible</div>
+  <h1>Random Websites I've Created w/ AI</h1>
+  <p>A collection of single-file HTML projects. Pick one below to launch it.</p>
+  <div class="header-line"></div>
+</div>
+
+<div class="status-bar">
+  <div class="status-dot"></div>
+  <div class="status-text">Live via GitHub Pages</div>
+  <div class="file-count" id="fileCount"></div>
+</div>
+
+<div class="grid" id="grid">
+  <div class="loading">
+    <div class="loading-spinner"></div>
+    SCANNING REPO...
+  </div>
+</div>
+
+<div class="footer">
+  <a href="https://github.com/deposible/Random-Websites-Ive-Created-w-AI" target="_blank">View on GitHub ↗</a>
+  <span>auto-indexed from repo</span>
+</div>
+
+<script>
+const REPO_OWNER = 'deposible';
+const REPO_NAME = 'Random-Websites-Ive-Created-w-AI';
+const BRANCH = 'main';
+
+// GitHub Pages base URL (update if using custom domain)
+const PAGES_BASE = `https://${REPO_OWNER}.github.io/${REPO_NAME}/`;
+
+// Fetch HTML files from repo via GitHub API (no auth needed for public repos)
+async function loadFiles() {
+  const grid = document.getElementById('grid');
+  const countEl = document.getElementById('fileCount');
+
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents?ref=${BRANCH}`);
+    if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
+    const files = await res.json();
+
+    // Filter for .html files, exclude index.html itself
+    const htmlFiles = files
+      .filter(f => f.name.endsWith('.html') && f.name.toLowerCase() !== 'index.html')
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (htmlFiles.length === 0) {
+      grid.innerHTML = `<div class="empty">No HTML files found yet. Push some to the repo!</div>`;
+      countEl.textContent = '0 files';
+      return;
+    }
+
+    countEl.textContent = `${htmlFiles.length} file${htmlFiles.length > 1 ? 's' : ''}`;
+
+    grid.innerHTML = htmlFiles.map((f, i) => {
+      const displayName = f.name
+        .replace('.html', '')
+        .replace(/[-_]/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+
+      const url = PAGES_BASE + encodeURIComponent(f.name);
+
+      return `
+        <a class="card" href="${url}" style="animation-delay:${0.4 + i * 0.06}s">
+          <div class="card-idx">${String(i + 1).padStart(2, '0')}</div>
+          <div class="card-name">${displayName}</div>
+          <div class="card-file">${f.name}</div>
+          <div class="card-arrow">
+            <span>Launch</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+        </a>
+      `;
+    }).join('');
+
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = `
+      <div class="error-msg">
+        <h3>Couldn't load files</h3>
+        <p>GitHub API might be rate-limited. Refresh in a minute, or check that the repo is public at
+        <a href="https://github.com/${REPO_OWNER}/${REPO_NAME}" style="color:var(--accent)">${REPO_OWNER}/${REPO_NAME}</a>.</p>
+      </div>
+    `;
+  }
+}
+
+loadFiles();
+</script>
+</body>
+</html>
