@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saber Simulator — Class Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0f;--bg2:#12121c;--bg3:#1a1a2e;--bg4:#222240;
+  --accent:#00e5ff;--accent2:#7c4dff;--accent3:#ff4081;
+  --gold:#ffd740;--text:#e0e0e8;--text2:#8888a0;
+  --glow:0 0 20px rgba(0,229,255,.3);
+  --card-radius:12px;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);
+  min-height:100vh;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse at 20% 0%,rgba(124,77,255,.08) 0%,transparent 50%),
+             radial-gradient(ellipse at 80% 100%,rgba(0,229,255,.06) 0%,transparent 50%);
+  pointer-events:none;z-index:0;
+}
+
+/* HEADER */
+.header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(10,10,15,.92);backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(0,229,255,.15);
+  padding:16px 24px;
+}
+.header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.4rem;letter-spacing:2px}
+.logo span{color:var(--accent)}
+.logo .sub{font-size:.7rem;color:var(--text2);letter-spacing:4px;display:block;font-weight:400}
+
+/* STATS BAR */
+.stats-bar{
+  display:flex;gap:20px;align-items:center;flex-wrap:wrap;
+}
+.stat{text-align:center}
+.stat-val{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:700;color:var(--accent)}
+.stat-label{font-size:.65rem;color:var(--text2);letter-spacing:2px;text-transform:uppercase}
+
+/* MAIN */
+.main{max-width:1200px;margin:0 auto;padding:20px 24px 60px;position:relative;z-index:1}
+
+/* CURRENT CLASS CARD */
+.current-card{
+  background:linear-gradient(135deg,var(--bg2),var(--bg3));
+  border:1px solid rgba(0,229,255,.2);border-radius:16px;
+  padding:28px 32px;margin-bottom:24px;position:relative;overflow:hidden;
+}
+.current-card::before{
+  content:'';position:absolute;top:-50%;right:-20%;width:300px;height:300px;
+  background:radial-gradient(circle,rgba(0,229,255,.1),transparent 70%);
+  pointer-events:none;
+}
+.current-card h2{font-family:'Orbitron',sans-serif;font-size:.75rem;letter-spacing:4px;color:var(--text2);margin-bottom:12px;text-transform:uppercase}
+.current-class-name{font-family:'Orbitron',sans-serif;font-size:2rem;font-weight:900;color:var(--accent);margin-bottom:4px}
+.current-meta{font-size:.9rem;color:var(--text2);margin-bottom:16px}
+.current-meta strong{color:var(--gold)}
+
+/* SELECT DROPDOWN */
+.select-wrap{position:relative;display:inline-block;margin-bottom:16px}
+.select-wrap select{
+  appearance:none;background:var(--bg);border:1px solid rgba(0,229,255,.3);
+  color:var(--text);padding:10px 40px 10px 16px;border-radius:8px;
+  font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:600;
+  cursor:pointer;min-width:220px;
+}
+.select-wrap select:focus{outline:none;border-color:var(--accent);box-shadow:var(--glow)}
+.select-wrap::after{
+  content:'▾';position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  color:var(--accent);pointer-events:none;font-size:1.1rem;
+}
+
+/* GOAL SECTION */
+.goal-section{
+  background:var(--bg2);border:1px solid rgba(124,77,255,.2);border-radius:12px;
+  padding:20px 24px;margin-bottom:24px;
+}
+.goal-section h3{font-family:'Orbitron',sans-serif;font-size:.7rem;letter-spacing:3px;color:var(--accent2);margin-bottom:12px;text-transform:uppercase}
+.goal-info{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:14px}
+.goal-class-name{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:700;color:var(--text)}
+.goal-mult{font-size:.85rem;color:var(--gold)}
+
+/* PROGRESS BAR */
+.progress-wrap{margin-top:8px}
+.progress-labels{display:flex;justify-content:space-between;font-size:.75rem;color:var(--text2);margin-bottom:6px}
+.progress-labels .pct{color:var(--accent);font-weight:700;font-family:'Orbitron',sans-serif}
+.progress-track{
+  height:10px;background:var(--bg);border-radius:99px;overflow:hidden;
+  border:1px solid rgba(0,229,255,.1);
+}
+.progress-fill{
+  height:100%;border-radius:99px;transition:width .6s ease;
+  background:linear-gradient(90deg,var(--accent2),var(--accent));
+  box-shadow:0 0 12px rgba(0,229,255,.4);
+}
+.classes-between{font-size:.8rem;color:var(--text2);margin-top:8px}
+.classes-between strong{color:var(--accent)}
+
+/* SEARCH & FILTER */
+.toolbar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.search-box{
+  flex:1;min-width:200px;background:var(--bg2);border:1px solid rgba(0,229,255,.15);
+  border-radius:8px;padding:10px 16px;color:var(--text);
+  font-family:'Rajdhani',sans-serif;font-size:1rem;
+}
+.search-box:focus{outline:none;border-color:var(--accent);box-shadow:var(--glow)}
+.search-box::placeholder{color:var(--text2)}
+.filter-btn{
+  padding:8px 16px;border-radius:8px;border:1px solid rgba(0,229,255,.15);
+  background:var(--bg2);color:var(--text2);font-family:'Rajdhani',sans-serif;
+  font-size:.85rem;font-weight:600;cursor:pointer;transition:.2s;
+}
+.filter-btn:hover,.filter-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.05)}
+
+/* CLASS LIST */
+.class-grid{display:flex;flex-direction:column;gap:4px}
+.class-row{
+  display:grid;grid-template-columns:50px 1fr 160px 160px;align-items:center;
+  padding:10px 16px;border-radius:8px;background:var(--bg2);
+  border:1px solid transparent;transition:.2s;cursor:pointer;gap:8px;
+}
+.class-row:hover{border-color:rgba(0,229,255,.2);background:var(--bg3)}
+.class-row.current{
+  border-color:var(--accent);background:rgba(0,229,255,.05);
+  box-shadow:inset 0 0 30px rgba(0,229,255,.03);
+}
+.class-row.completed{opacity:.55}
+.class-row.goal-row{border-color:var(--accent2);background:rgba(124,77,255,.05)}
+.class-rank{
+  font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;
+  color:var(--text2);text-align:center;
+}
+.class-row.current .class-rank{color:var(--accent)}
+.class-name-cell{font-weight:600;font-size:1rem}
+.class-row.current .class-name-cell{color:var(--accent)}
+.class-row.goal-row .class-name-cell{color:var(--accent2)}
+.class-mult{font-size:.8rem;color:var(--gold);font-weight:500}
+.class-cost{font-size:.8rem;color:var(--text2);text-align:right;font-weight:500}
+.class-row.completed .class-name-cell::after{
+  content:' ✓';color:rgba(0,229,255,.5);font-size:.8rem;
+}
+
+/* CROWN INDICATOR */
+.crown-mult{font-size:.7rem;color:var(--accent2);margin-top:2px}
+
+/* TAG */
+.tag{
+  display:inline-block;padding:2px 8px;border-radius:4px;font-size:.6rem;
+  font-family:'Orbitron',sans-serif;letter-spacing:1px;font-weight:700;margin-left:8px;
+}
+.tag.you{background:rgba(0,229,255,.15);color:var(--accent)}
+.tag.goal{background:rgba(124,77,255,.15);color:var(--accent2)}
+
+/* MOBILE */
+@media(max-width:700px){
+  .class-row{grid-template-columns:40px 1fr 100px;font-size:.9rem}
+  .class-cost{display:none}
+  .header-inner{flex-direction:column;align-items:flex-start}
+  .current-class-name{font-size:1.4rem}
+}
+
+/* SCROLL INDICATOR */
+.scroll-top{
+  position:fixed;bottom:24px;right:24px;width:44px;height:44px;
+  border-radius:50%;background:var(--accent);color:var(--bg);
+  display:none;align-items:center;justify-content:center;
+  font-size:1.2rem;cursor:pointer;z-index:99;border:none;
+  box-shadow:0 4px 20px rgba(0,229,255,.4);
+}
+.scroll-top.show{display:flex}
+
+/* COUNT */
+.list-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:12px;padding:0 4px;
+}
+.list-header h3{font-family:'Orbitron',sans-serif;font-size:.7rem;letter-spacing:3px;color:var(--text2);text-transform:uppercase}
+.count{font-size:.8rem;color:var(--text2)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="logo">SABER<span>SIM</span><span class="sub">CLASS TRACKER</span></div>
+    <div class="stats-bar" id="statsBar"></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="current-card">
+    <h2>Your Current Class</h2>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div class="select-wrap">
+        <select id="currentSelect"></select>
+      </div>
+    </div>
+    <div class="current-class-name" id="currentName">Noob</div>
+    <div class="current-meta" id="currentMeta"></div>
+  </div>
+
+  <div class="goal-section">
+    <h3>Goal Class</h3>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:8px">
+      <div class="select-wrap">
+        <select id="goalSelect"></select>
+      </div>
+    </div>
+    <div class="goal-info">
+      <div class="goal-class-name" id="goalName"></div>
+      <div class="goal-mult" id="goalMult"></div>
+    </div>
+    <div class="progress-wrap" id="progressWrap"></div>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" class="search-box" id="searchBox" placeholder="Search classes...">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" data-filter="completed" onclick="setFilter('completed',this)">Completed</button>
+    <button class="filter-btn" data-filter="upcoming" onclick="setFilter('upcoming',this)">Upcoming</button>
+  </div>
+
+  <div class="list-header">
+    <h3>All Classes</h3>
+    <div class="count" id="listCount"></div>
+  </div>
+  <div class="class-grid" id="classGrid"></div>
+</div>
+
+<button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0})">↑</button>
+
+<script>
+const CLASSES=[
+{name:"Noob",mult:"x1",crown:null,cost:"0"},
+{name:"Apprentice",mult:"x2",crown:null,cost:"2M"},
+{name:"Soldier",mult:"x4",crown:null,cost:"150M"},
+{name:"Paladin",mult:"x6",crown:null,cost:"11.25B"},
+{name:"Assassin",mult:"x9",crown:null,cost:"843.75B"},
+{name:"Warrior",mult:"x12",crown:null,cost:"63.281t"},
+{name:"Warlord",mult:"x15",crown:null,cost:"474.6t"},
+{name:"Berserker",mult:"x20",crown:null,cost:"3.56q"},
+{name:"Saber",mult:"x25",crown:null,cost:"26.697q"},
+{name:"Cyborg",mult:"x38",crown:null,cost:"200.226q"},
+{name:"Master",mult:"x57",crown:null,cost:"1.502Q"},
+{name:"Titan",mult:"x86",crown:null,cost:"11.263Q"},
+{name:"Phantom",mult:"x100",crown:null,cost:"84.47Q"},
+{name:"Shadow",mult:"x120",crown:null,cost:"633.527Q"},
+{name:"Ghoul",mult:"x145",crown:null,cost:"4.751s"},
+{name:"Tempest",mult:"x170",crown:null,cost:"166.301s"},
+{name:"Elementalist",mult:"x195",crown:null,cost:"5.821S"},
+{name:"Beast",mult:"x250",crown:null,cost:"203.719S"},
+{name:"Dark Ninja",mult:"x280",crown:null,cost:"10.186o"},
+{name:"Warlock",mult:"x310",crown:null,cost:"509.296o"},
+{name:"Overlord",mult:"x350",crown:null,cost:"25.465n"},
+{name:"Demigod",mult:"x400",crown:null,cost:"1.273d"},
+{name:"Archangel",mult:"x450",crown:null,cost:"63.662d"},
+{name:"Wraith",mult:"x500",crown:null,cost:"3.183U"},
+{name:"Deity",mult:"x650",crown:null,cost:"159.155U"},
+{name:"Nemesis",mult:"x750",crown:null,cost:"7.958D"},
+{name:"Executioner",mult:"x815",crown:null,cost:"397.888D"},
+{name:"Terminator",mult:"x875",crown:null,cost:"19.894T"},
+{name:"Colossus",mult:"x940",crown:null,cost:"994.719T"},
+{name:"Zeus",mult:"x1200",crown:null,cost:"49.736Qt"},
+{name:"Elf",mult:"x1275",crown:null,cost:"2.487Qd"},
+{name:"Santa",mult:"x1350",crown:null,cost:"124.34Qd"},
+{name:"Corruptor",mult:"x1425",crown:null,cost:"6.217Sd"},
+{name:"Prestige",mult:"x1500",crown:null,cost:"310.85Sd"},
+{name:"Caster",mult:"x2100",crown:null,cost:"15.54St"},
+{name:"Cyclops",mult:"x2200",crown:null,cost:"777.125St"},
+{name:"King",mult:"x2300",crown:null,cost:"38.856O"},
+{name:"Hacker",mult:"x2400",crown:null,cost:"1.943N"},
+{name:"Angel",mult:"x2500",crown:null,cost:"97.141N"},
+{name:"Minotaur",mult:"x6500",crown:"x1.05",cost:"4.857v"},
+{name:"Cerberus",mult:"x6750",crown:"x1.1",cost:"242.851v"},
+{name:"Yeti",mult:"x7000",crown:"x1.2",cost:"12.143c"},
+{name:"Samurai",mult:"x7500",crown:"x2.4",cost:"607.129c"},
+{name:"Baron",mult:"x8000",crown:"x4.8",cost:"30.356kA"},
+{name:"Detective",mult:"x17000",crown:"x9.5",cost:"1.518kB"},
+{name:"Red Baron",mult:"x18000",crown:"x19",cost:"75.981kB"},
+{name:"Witch",mult:"x19000",crown:"x38.1",cost:"3.795kC"},
+{name:"Gladiator",mult:"x20000",crown:"x76.3",cost:"189.728kC"},
+{name:"Purple Baron",mult:"x21000",crown:"x152.6",cost:"9.486kD"},
+{name:"Guard",mult:"x34500",crown:"x305",cost:"711.479kD"},
+{name:"Shadow Titan",mult:"x37500",crown:"x610",cost:"53.361kE"},
+{name:"Superhuman",mult:"x42000",crown:"x1220",cost:"4.002kF"},
+{name:"Brain",mult:"x48000",crown:"x2441",cost:"300.155kF"},
+{name:"Shadow Guard",mult:"x55500",crown:"x4882",cost:"22.512kG"},
+{name:"Shadow Gladiator",mult:"x126K",crown:"x9765",cost:"1.688kH"},
+{name:"Red Elf",mult:"x156K",crown:"x19531",cost:"126.628kH"},
+{name:"Gingerbread",mult:"x195K",crown:"x39062",cost:"9.497kI"},
+{name:"Ninja Warrior",mult:"x240K",crown:"x78000",cost:"712.282kI"},
+{name:"Snowman",mult:"x300K",crown:"x156K",cost:"53.421kJ"},
+{name:"Lord Of Death",mult:"x780K",crown:"x312.5K",cost:"4.007kK"},
+{name:"Demonic",mult:"x990K",crown:"x625K",cost:"300.494kK"},
+{name:"Alien",mult:"x1.2M",crown:"x1.2M",cost:"22.537kL"},
+{name:"Ghost",mult:"x1.5M",crown:"x2.5M",cost:"1.69kM"},
+{name:"Dracula",mult:"x1.8M",crown:"x5M",cost:"253.542kM"},
+{name:"Golem",mult:"x4.5M",crown:"x10M",cost:"38.031kN"},
+{name:"Dragon",mult:"x5.4M",crown:"x15M",cost:"5.705kO"},
+{name:"Spirit",mult:"x6.5M",crown:"x20M",cost:"855.704kO"},
+{name:"Pharaoh",mult:"x7.8M",crown:"x25M",cost:"128.356kP"},
+{name:"Mummy",mult:"x9.3M",crown:"x35M",cost:"19.253kQ"},
+{name:"Ape",mult:"x22.4M",crown:"x45M",cost:"2.888kR"},
+{name:"Robot",mult:"x26.9M",crown:"x55M",cost:"433.2kR"},
+{name:"Goblin",mult:"x32.2M",crown:"x65M",cost:"64.98kS"},
+{name:"Techno",mult:"x38.7M",crown:"x75M",cost:"9.747kT"},
+{name:"Golden Warrior",mult:"x46.5M",crown:"x100M",cost:"1.462kU"},
+{name:"Golden Royalty",mult:"x112M",crown:"x137.5M",cost:"219.307kU"},
+{name:"Demonic Imp",mult:"x134M",crown:"x375M",cost:"32.9kV"},
+{name:"Anubis",mult:"x161M",crown:"x1.75B",cost:"4.93kW"},
+{name:"Illuminati",mult:"x193M",crown:"x3.75B",cost:"740.2kW"},
+{name:"Hydra",mult:"x231M",crown:"x10B",cost:"111kX"},
+{name:"Skeleton",mult:"x555M",crown:"x37.5B",cost:"16.7kY"},
+{name:"Supervillain",mult:"x667M",crown:"x750B",cost:"2.5kZ"},
+{name:"Dark Slayer",mult:"x800M",crown:"x7.5t",cost:"374.7kZ"},
+{name:"Dark Spider",mult:"x960M",crown:"x10t",cost:"56.2kAA"},
+{name:"Troll",mult:"x1.15B",crown:"x12.5t",cost:"8.4kAB"},
+{name:"Shark",mult:"x1.38B",crown:"x15t",cost:"1.3kAC"},
+{name:"Pirate",mult:"x1.66B",crown:"x18t",cost:"190kAC"},
+{name:"Kraken",mult:"x1.99B",crown:"x21.6t",cost:"28.5kAD"},
+{name:"Genie",mult:"x2.39B",crown:"x25.9t",cost:"4.2kAE"},
+{name:"Cobra",mult:"x2.86B",crown:"x31.1t",cost:"640kAE"},
+{name:"Sphinx",mult:"x3.44B",crown:"x37.3t",cost:"96kAF"},
+{name:"Dark Witch",mult:"x4.12B",crown:"x44.8t",cost:"14.4kAG"},
+{name:"Knight",mult:"x4.95B",crown:"x53.7t",cost:"2.2kAH"},
+{name:"Chimera",mult:"x5.94B",crown:"x64.5t",cost:"324kAH"},
+{name:"Kitsune",mult:"x7.12B",crown:"x77.4t",cost:"48.6kAI"},
+{name:"Odin",mult:"x8.55B",crown:"x92.9t",cost:"7.29kAJ"},
+{name:"Cowboy",mult:"x10.3B",crown:"x111t",cost:"1.09kAK"},
+{name:"Undead",mult:"x12.3B",crown:"x134t",cost:"164.03kAK"},
+{name:"Satyr",mult:"x14.8B",crown:"x160t",cost:"24.6kAL"},
+{name:"Hermes",mult:"x17.7B",crown:"x193t",cost:"3.69kAM"},
+{name:"Hades",mult:"x21.3B",crown:"x231t",cost:"553.50kAM"},
+{name:"Faun",mult:"x25.5B",crown:"x277t",cost:"83.1kAN"},
+{name:"Giant",mult:"x30.6B",crown:"x333t",cost:"12.5kAO"},
+{name:"Ignivar",mult:"x36.8B",crown:"x399t",cost:"1.87kAP"},
+{name:"Aviator",mult:"x44.1B",crown:"x479t",cost:"280.5kAP"},
+{name:"Astronaut",mult:"x52.9B",crown:"x575t",cost:"42.75kAQ"},
+{name:"Poseidon",mult:"x63.59B",crown:"x688.32t",cost:"6.31kAR"},
+{name:"Fallen Angel",mult:"x76.8B",crown:"x828t",cost:"946.5kAR"},
+{name:"Gargoyle",mult:"x91.6B",crown:"x994t",cost:"141.9kAS"},
+{name:"Necromancer",mult:"x110B",crown:"x1.19q",cost:"21.3kAT"},
+{name:"Sentinel",mult:"x132B",crown:"x1.43q",cost:"3.19kAU"},
+{name:"Reaper",mult:"x158B",crown:"x1.72q",cost:"479kAU"},
+{name:"Fireborn",mult:"x190B",crown:"x2.06q",cost:"71.9kAV"},
+{name:"Valkyrie",mult:"x228B",crown:"x2.47q",cost:"10.8kAW"},
+{name:"Werewolf",mult:"x273B",crown:"x2.97q",cost:"1.62kAX"},
+{name:"Athena",mult:"x328B",crown:"x3.56q",cost:"242kAX"},
+{name:"Oni",mult:"x393B",crown:"x4.27q",cost:"36.4kAY"},
+{name:"Wendigo",mult:"x472B",crown:"x5.13q",cost:"5.46kAZ"},
+{name:"Frankenstein",mult:"x566B",crown:"x6.15q",cost:"818kAZ"},
+{name:"Scarecrow",mult:"x680B",crown:"x7.38q",cost:"123kBA"},
+{name:"Headless Horseman",mult:"x816B",crown:"x8.86q",cost:"18.4kBB"},
+{name:"Doombringer",mult:"x979B",crown:"x10.6q",cost:"2.76kBC"},
+{name:"Skull Emperor",mult:"x1.17t",crown:"x12.8q",cost:"414kBC"},
+{name:"Crescent Imperion",mult:"x1.41t",crown:"x15.3q",cost:"62.1kBD"},
+{name:"Clockwork",mult:"x1.69t",crown:"x18.4q",cost:"9.32kBE"},
+{name:"Leviathan",mult:"x2.03t",crown:"x22q",cost:"1.4kBF"},
+{name:"Trooper",mult:"x2.44t",crown:"x26.5q",cost:"210kBF"},
+{name:"Medusa",mult:"x2.92t",crown:"x31.7q",cost:"31.5kBG"},
+{name:"Krampus",mult:"x3.51t",crown:"x38.1q",cost:"4.72kBH"},
+{name:"Rudolph",mult:"x4.21t",crown:"x45.7q",cost:"708kBH"},
+{name:"Mrs Claus",mult:"x5.05t",crown:"x54.9q",cost:"106kBI"},
+{name:"Fairy",mult:"x6.06t",crown:"x65.8q",cost:"15.9kBJ"},
+{name:"Dryad",mult:"x7.27t",crown:"x79q",cost:"2.39kBK"},
+{name:"Titanoboa",mult:"x8.73t",crown:"x94.8q",cost:"358kBK"},
+{name:"Megalodon",mult:"x10.5t",crown:"x114q",cost:"53.8kBL"},
+{name:"Mage",mult:"x12.6t",crown:"x137q",cost:"8.06kBM"},
+{name:"Juggernaut",mult:"x15.1t",crown:"x164q",cost:"1.21kBN"},
+{name:"Omen",mult:"x18.1t",crown:"x197q",cost:"181kBN"},
+{name:"Quinotaur",mult:"x21.7t",crown:"x236q",cost:"27.2kBO"},
+{name:"Sorcerer",mult:"x26.1t",crown:"x283q",cost:"4.08kBP"},
+{name:"Emperor",mult:"x31.3t",crown:"x340q",cost:"612kBP"},
+{name:"Poltergeist",mult:"x37.5t",crown:"x408q",cost:"91.8kBQ"},
+{name:"Helios",mult:"x45t",crown:"x489q",cost:"13.8kBR"},
+{name:"Chaos Omen",mult:"x54t",crown:"x587q",cost:"2.06kBS"},
+{name:"Cursed Satyr",mult:"x64.8t",crown:"x704q",cost:"310kBS"},
+{name:"Apollo",mult:"x77.8t",crown:"x845q",cost:"46.5kBT"},
+{name:"Banshee",mult:"x93.4t",crown:"x1.01Q",cost:"6.97kBU"},
+{name:"Viking",mult:"x112t",crown:"x1.21Q",cost:"1.05kBV"},
+{name:"Sasquatch",mult:"x134t",crown:"x1.45Q",cost:"158kBV"},
+{name:"Cupid",mult:"x161t",crown:"x1.81Q",cost:"23.7kBW"},
+{name:"Mecha",mult:"x193t",crown:"x2.17Q",cost:"3.56kBX"},
+];
+
+let currentIdx=0,goalIdx=CLASSES.length-1,filter='all',searchTerm='';
+
+function init(){
+  const saved=localStorage.getItem('saber_current');
+  const savedGoal=localStorage.getItem('saber_goal');
+  if(saved!==null)currentIdx=parseInt(saved);
+  if(savedGoal!==null)goalIdx=parseInt(savedGoal);
+  if(goalIdx<=currentIdx)goalIdx=Math.min(currentIdx+1,CLASSES.length-1);
+
+  const cs=document.getElementById('currentSelect');
+  const gs=document.getElementById('goalSelect');
+  CLASSES.forEach((c,i)=>{
+    cs.innerHTML+=`<option value="${i}">${i+1}. ${c.name}</option>`;
+    gs.innerHTML+=`<option value="${i}">${i+1}. ${c.name}</option>`;
+  });
+  cs.value=currentIdx;
+  gs.value=goalIdx;
+  cs.addEventListener('change',e=>{currentIdx=parseInt(e.target.value);if(goalIdx<=currentIdx)goalIdx=Math.min(currentIdx+1,CLASSES.length-1);gs.value=goalIdx;save();render()});
+  gs.addEventListener('change',e=>{goalIdx=parseInt(e.target.value);if(goalIdx<=currentIdx)goalIdx=currentIdx;gs.value=goalIdx;save();render()});
+  document.getElementById('searchBox').addEventListener('input',e=>{searchTerm=e.target.value.toLowerCase();renderList()});
+  window.addEventListener('scroll',()=>{document.getElementById('scrollTop').classList.toggle('show',window.scrollY>400)});
+  render();
+}
+
+function save(){localStorage.setItem('saber_current',currentIdx);localStorage.setItem('saber_goal',goalIdx)}
+
+function render(){
+  const c=CLASSES[currentIdx];
+  document.getElementById('currentName').textContent=c.name;
+  let meta=`Rank #${currentIdx+1} of ${CLASSES.length} — Strength ${c.mult}`;
+  if(c.crown)meta+=` — Crown ${c.crown}`;
+  document.getElementById('currentMeta').innerHTML=meta;
+
+  const g=CLASSES[goalIdx];
+  document.getElementById('goalName').textContent=g.name;
+  let gm=`Strength ${g.mult}`;
+  if(g.crown)gm+=` | Crown ${g.crown}`;
+  document.getElementById('goalMult').textContent=gm;
+
+  // progress
+  const pw=document.getElementById('progressWrap');
+  if(goalIdx<=currentIdx){
+    pw.innerHTML=`<div style="color:var(--accent);font-family:'Orbitron',sans-serif;font-size:.85rem">✦ GOAL REACHED ✦</div>`;
+  }else{
+    const pct=Math.round((currentIdx/(goalIdx))*100);
+    const diff=goalIdx-currentIdx;
+    pw.innerHTML=`
+      <div class="progress-labels"><span>${c.name} → ${g.name}</span><span class="pct">${pct}%</span></div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="classes-between"><strong>${diff}</strong> class${diff>1?'es':''} to go — Next up: <strong>${CLASSES[Math.min(currentIdx+1,CLASSES.length-1)].name}</strong> (${CLASSES[Math.min(currentIdx+1,CLASSES.length-1)].cost} coins)</div>
+    `;
+  }
+
+  // stats
+  document.getElementById('statsBar').innerHTML=`
+    <div class="stat"><div class="stat-val">${currentIdx+1}/${CLASSES.length}</div><div class="stat-label">Rank</div></div>
+    <div class="stat"><div class="stat-val">${c.mult}</div><div class="stat-label">Strength</div></div>
+    <div class="stat"><div class="stat-val">${Math.round((currentIdx/(CLASSES.length-1))*100)}%</div><div class="stat-label">Complete</div></div>
+  `;
+
+  renderList();
+}
+
+function renderList(){
+  const grid=document.getElementById('classGrid');
+  let html='';let shown=0;
+  CLASSES.forEach((c,i)=>{
+    const completed=i<currentIdx;
+    const isCurrent=i===currentIdx;
+    const isGoal=i===goalIdx;
+    if(filter==='completed'&&!completed&&!isCurrent)return;
+    if(filter==='upcoming'&&(completed||isCurrent))return;
+    if(searchTerm&&!c.name.toLowerCase().includes(searchTerm))return;
+    shown++;
+    let cls='class-row';
+    if(completed)cls+=' completed';
+    if(isCurrent)cls+=' current';
+    if(isGoal&&!isCurrent)cls+=' goal-row';
+    let tags='';
+    if(isCurrent)tags+=`<span class="tag you">YOU</span>`;
+    if(isGoal&&!isCurrent)tags+=`<span class="tag goal">GOAL</span>`;
+    let crownHtml=c.crown?`<div class="crown-mult">👑 ${c.crown}</div>`:'';
+    html+=`<div class="${cls}" onclick="jumpTo(${i})">
+      <div class="class-rank">#${i+1}</div>
+      <div><div class="class-name-cell">${c.name}${tags}</div>${crownHtml}</div>
+      <div class="class-mult">⚔ ${c.mult}</div>
+      <div class="class-cost">${c.cost} coins</div>
+    </div>`;
+  });
+  grid.innerHTML=html;
+  document.getElementById('listCount').textContent=`${shown} shown`;
+}
+
+function jumpTo(i){
+  currentIdx=i;
+  document.getElementById('currentSelect').value=i;
+  if(goalIdx<=currentIdx)goalIdx=Math.min(currentIdx+1,CLASSES.length-1);
+  document.getElementById('goalSelect').value=goalIdx;
+  save();render();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function setFilter(f,btn){
+  filter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+
+init();
+</script>
+</body>
+</html>
