@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MON Staking Tracker — MonadVision APY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#06060e;--bg2:#0c0c1a;--bg3:#121225;--bg4:#1a1a32;
+  --glass:rgba(14,14,30,.72);--glass2:rgba(20,20,42,.6);
+  --purple:#836ef9;--purple-soft:#a08aff;--purple-deep:#5a45c9;
+  --purple-glow:rgba(131,110,249,.2);--purple-glow-s:rgba(131,110,249,.35);
+  --cyan:#42e8d5;--cyan-glow:rgba(66,232,213,.12);
+  --green:#3ddc84;--amber:#f5b731;--amber-glow:rgba(245,183,49,.12);
+  --red:#ff5c6c;
+  --text:#eae8f4;--text2:#a09cb8;--text3:#5c5878;--text4:#3a3658;
+  --border:rgba(131,110,249,.12);--border2:rgba(131,110,249,.22);
+  --r:14px;--r-sm:10px;--r-xs:6px;
+}
+html{font-size:16px}
+body{
+  font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);
+  min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}
+.bg-grid{
+  position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(131,110,249,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(131,110,249,.03) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(ellipse 70% 60% at 50% 30%,black,transparent);
+}
+.bg-orb{
+  position:fixed;border-radius:50%;filter:blur(100px);z-index:0;pointer-events:none;
+  animation:orbF 20s ease-in-out infinite alternate;
+}
+.bg-orb.a{width:500px;height:500px;top:-10%;left:-5%;background:rgba(131,110,249,.07)}
+.bg-orb.b{width:400px;height:400px;bottom:-10%;right:-5%;background:rgba(66,232,213,.05);animation-delay:-10s}
+@keyframes orbF{0%{transform:translate(0,0)}100%{transform:translate(40px,30px)}}
+
+.app{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:24px 20px 100px}
+
+/* Header */
+.header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 0 28px;flex-wrap:wrap;gap:12px;
+  animation:fs .6s ease both;
+}
+@keyframes fs{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-mark{
+  width:46px;height:46px;border-radius:13px;position:relative;
+  background:linear-gradient(135deg,var(--purple),var(--purple-deep));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 28px var(--purple-glow-s),inset 0 1px 0 rgba(255,255,255,.15);
+}
+.logo-mark span{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:20px;color:#fff}
+.logo-title{font-weight:800;font-size:21px;letter-spacing:-.4px;line-height:1.1}
+.logo-title small{display:block;font-weight:400;font-size:11px;color:var(--text3);letter-spacing:.5px;margin-top:2px}
+.header-r{display:flex;align-items:center;gap:14px}
+.live-pill{
+  display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+  color:var(--green);background:rgba(61,220,132,.08);
+  padding:6px 14px;border-radius:20px;border:1px solid rgba(61,220,132,.15);
+  letter-spacing:.5px;text-transform:uppercase;
+}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.rst-btn{
+  background:none;border:1px solid var(--border);color:var(--text3);
+  padding:6px 12px;border-radius:8px;font-size:11px;cursor:pointer;
+  font-family:'Syne',sans-serif;font-weight:500;transition:all .2s;
+}
+.rst-btn:hover{border-color:var(--red);color:var(--red)}
+
+/* Glass Card */
+.g{
+  background:var(--glass);border:1px solid var(--border);border-radius:var(--r);
+  padding:22px;position:relative;overflow:hidden;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  transition:border-color .3s,box-shadow .3s;
+}
+.g:hover{border-color:var(--border2);box-shadow:0 4px 30px rgba(0,0,0,.15)}
+.g::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent 10%,rgba(131,110,249,.2) 50%,transparent 90%);
+}
+.g-t{
+  font-size:10px;text-transform:uppercase;letter-spacing:2px;
+  color:var(--text3);font-weight:700;margin-bottom:14px;
+}
+
+/* Stagger */
+.st{animation:fs .5s ease both}
+.st:nth-child(1){animation-delay:.05s}.st:nth-child(2){animation-delay:.1s}
+.st:nth-child(3){animation-delay:.15s}.st:nth-child(4){animation-delay:.2s}
+
+/* Stats Row */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:700px){.stats{grid-template-columns:1fr 1fr}}
+.stat{text-align:center;padding:18px 10px}
+.sv{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:700;margin:5px 0 3px;line-height:1}
+.sv.cp{color:var(--cyan)}.sv.ca{color:var(--green)}.sv.cpo{color:var(--purple-soft)}.sv.ce{color:var(--amber)}
+.ss{font-size:11px;color:var(--text2);font-weight:400}
+.sb{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;margin-top:4px}
+.sb.up{color:var(--green);background:rgba(61,220,132,.1)}
+.sb.down{color:var(--red);background:rgba(255,92,108,.1)}
+.sb.ne{color:var(--text3);background:rgba(92,88,120,.15)}
+.pts{font-size:9px;color:var(--text4);margin-top:3px}
+
+/* Cols */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+@media(max-width:768px){.cols{grid-template-columns:1fr}}
+
+/* Inputs */
+.fd{margin-bottom:14px}
+.fl{font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:500;letter-spacing:.3px}
+.fr{display:flex;gap:8px}
+input[type="number"],input[type="text"]{
+  flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:11px 14px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:14px;
+  outline:none;transition:border-color .25s,box-shadow .25s;
+}
+input:focus{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-glow)}
+input::placeholder{color:var(--text4)}
+.btn{
+  padding:11px 20px;border:none;border-radius:var(--r-sm);cursor:pointer;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:12px;letter-spacing:.3px;
+  transition:all .2s;white-space:nowrap;
+}
+.bp{
+  background:linear-gradient(135deg,var(--purple),var(--purple-deep));color:#fff;
+  box-shadow:0 2px 16px var(--purple-glow);
+}
+.bp:hover{transform:translateY(-1px);box-shadow:0 6px 24px var(--purple-glow-s)}
+.bp:active{transform:translateY(0)}
+.bs{padding:7px 12px;font-size:10px;border-radius:var(--r-xs)}
+.bo{background:transparent;border:1px solid var(--border);color:var(--text2)}
+.bo:hover{border-color:var(--purple);color:var(--text)}
+.bd{background:rgba(255,92,108,.08);border:1px solid rgba(255,92,108,.15);color:var(--red)}
+.bd:hover{background:rgba(255,92,108,.18)}
+
+/* APY */
+.sl{display:flex;align-items:center;gap:14px;margin-top:6px}
+input[type="range"]{
+  -webkit-appearance:none;flex:1;height:5px;border-radius:3px;outline:none;
+  background:linear-gradient(90deg,var(--purple-deep),var(--green));
+}
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:#fff;cursor:pointer;border:3px solid var(--purple);
+  box-shadow:0 0 12px var(--purple-glow-s);transition:box-shadow .2s;
+}
+input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 20px var(--purple-glow-s)}
+#iC{background:linear-gradient(90deg,var(--green),var(--red))}
+#iC::-webkit-slider-thumb{border-color:var(--red)}
+.an{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:var(--green);min-width:65px;text-align:right}
+.anote{font-size:10px;color:var(--text4);margin-top:8px;line-height:1.5}
+.anote a{color:var(--purple-soft);text-decoration:none}
+.anote a:hover{text-decoration:underline}
+
+/* Earnings */
+.eg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.eb{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:14px 10px;text-align:center;transition:border-color .2s;
+}
+.eb:hover{border-color:var(--border2)}
+.ep{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text4);margin-bottom:5px;font-weight:700}
+.em{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;color:var(--cyan)}
+.eu{font-size:11px;color:var(--text3);margin-top:2px;font-family:'IBM Plex Mono',monospace}
+
+/* Goals */
+.gw{display:flex;flex-direction:column;gap:10px;margin-top:8px;flex:1}
+.gi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:16px;transition:border-color .2s}
+.gi:hover{border-color:var(--border2)}
+.gt{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.gn{
+  font-weight:700;font-size:14px;cursor:pointer;padding:2px 8px;
+  border:1px solid transparent;border-radius:var(--r-xs);transition:border-color .2s;
+}
+.gn:hover{border-color:var(--text4)}
+.gb{display:flex;gap:4px}
+.gtr{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.gf{
+  height:100%;border-radius:3px;transition:width .6s cubic-bezier(.22,1,.36,1);
+  background:linear-gradient(90deg,var(--purple),var(--cyan));
+}
+.gf.dn{background:linear-gradient(90deg,var(--green),#6ee7b7)}
+.ginfo{display:flex;justify-content:space-between;font-size:11px;color:var(--text2)}
+.gpct{font-weight:700}.gpct.ok{color:var(--green)}
+.gmeta{font-size:11px;color:var(--text4);margin-top:5px;line-height:1.5}
+.gmeta .gc{color:var(--amber);font-family:'IBM Plex Mono',monospace;font-weight:500}
+.gmeta .gd{color:var(--green);font-weight:600}
+.ga{
+  border:1px dashed var(--text4);border-radius:var(--r-sm);padding:14px;
+  text-align:center;color:var(--text4);cursor:pointer;font-size:13px;font-weight:600;
+  transition:all .25s;margin-top:2px;
+}
+.ga:hover{border-color:var(--purple);color:var(--purple)}
+.ge{text-align:center;color:var(--text4);font-size:12px;padding:28px 10px;line-height:1.6}
+
+/* Achievements */
+.ag{display:grid;grid-template-columns:repeat(auto-fill,minmax(94px,1fr));gap:8px;margin-top:10px}
+.ac{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:14px 6px 12px;text-align:center;transition:all .35s;position:relative;
+}
+.ac.on{border-color:var(--amber);background:rgba(245,183,49,.04);box-shadow:0 0 16px var(--amber-glow)}
+.ac.off{opacity:.25;filter:grayscale(.5)}
+.ae{font-size:26px;line-height:1;margin-bottom:4px}
+.al{font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.av{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--amber);font-weight:600;margin-top:2px}
+.ac.on .al{color:var(--text)}
+.ack{
+  position:absolute;top:-5px;right:-5px;width:18px;height:18px;
+  background:var(--amber);border-radius:50%;font-size:9px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;color:var(--bg);
+  box-shadow:0 2px 8px var(--amber-glow);
+}
+
+/* Income Calc */
+.cr{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+@media(max-width:500px){.cr{grid-template-columns:1fr}}
+.cb{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:16px;text-align:center}
+.cl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text4);font-weight:700}
+.ct{font-size:12px;color:var(--text2);margin:4px 0 8px}
+.cm{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:700;color:var(--cyan)}
+.cc{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--amber);margin-top:3px}
+
+/* Modal */
+.mbg{
+  display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.65);z-index:100;align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.mbg.open{display:flex}
+.mbox{
+  background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);
+  padding:28px;width:92%;max-width:380px;animation:fs .25s ease;
+}
+.mbox h3{font-size:16px;font-weight:700;margin-bottom:18px}
+.mbox .fd{margin-bottom:12px}
+.mf{display:flex;gap:8px;justify-content:flex-end;margin-top:22px}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:28px;left:50%;z-index:200;
+  background:var(--bg4);border:1px solid var(--amber);border-radius:var(--r);
+  padding:14px 24px;display:flex;align-items:center;gap:12px;
+  transform:translate(-50%,80px);opacity:0;transition:all .45s cubic-bezier(.22,1,.36,1);
+  box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:90vw;
+}
+.toast.pop{transform:translate(-50%,0);opacity:1}
+.ti{font-size:28px}.tm{font-size:13px;font-weight:600}
+
+/* Footer */
+.foot{
+  text-align:center;padding:28px 0 0;font-size:10px;color:var(--text4);
+  border-top:1px solid var(--border);margin-top:28px;line-height:1.7;letter-spacing:.3px;
+}
+.foot a{color:var(--purple-soft);text-decoration:none}
+.foot a:hover{text-decoration:underline}
+
+@media(max-width:600px){
+  .sv{font-size:18px}
+  .ag{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))}
+  .app{padding:16px 14px 80px}
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-orb a"></div>
+<div class="bg-orb b"></div>
+<div class="app">
+
+  <header class="header">
+    <div class="logo">
+      <div class="logo-mark"><span>M</span></div>
+      <div class="logo-title">MON Staking Tracker<small>Powered by MonadVision data</small></div>
+    </div>
+    <div class="header-r">
+      <div class="live-pill"><div class="live-dot"></div>Live</div>
+      <button class="rst-btn" onclick="resetAll()" title="Clear all saved data">Reset</button>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="g stat st">
+      <div class="g-t">MON Price</div>
+      <div class="sv cp" id="vP">—</div>
+      <div id="vPB" class="sb ne">loading</div>
+      <div class="pts" id="vPT">connecting…</div>
+    </div>
+    <div class="g stat st">
+      <div class="g-t">Effective APY</div>
+      <div class="sv ca" id="vA">12.60%</div>
+      <div class="ss" id="vAC">14% base · 10% commission</div>
+    </div>
+    <div class="g stat st">
+      <div class="g-t">Your Position</div>
+      <div class="sv cpo" id="vV">$0.00</div>
+      <div class="ss" id="vVM">0 MON staked</div>
+    </div>
+    <div class="g stat st">
+      <div class="g-t">Daily Earnings</div>
+      <div class="sv ce" id="vD">0.00 MON</div>
+      <div class="ss" id="vDU">≈ $0.00 / day</div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="g st">
+        <div class="g-t">Staked Balance</div>
+        <div class="fd">
+          <div class="fl">Your MON Amount</div>
+          <div class="fr">
+            <input type="number" id="iB" placeholder="e.g. 50000" min="0" step="any">
+            <button class="btn bp" onclick="saveBal()">Save</button>
+          </div>
+        </div>
+        <div>
+          <div class="fl">APY Adjustment</div>
+          <div class="sl">
+            <input type="range" id="iA" min="1" max="30" step="0.1" value="14">
+            <div class="an" id="aN">14.0%</div>
+          </div>
+          <div class="anote">
+            Current range across MonadVision validators is ~12–16%.
+            <a href="https://monadvision.com/validators" target="_blank" rel="noopener">View validators →</a>
+          </div>
+        </div>
+        <div style="margin-top:14px">
+          <div class="fl">Validator Commission %</div>
+          <div class="sl">
+            <input type="range" id="iC" min="0" max="50" step="0.5" value="10">
+            <div class="an" id="cN" style="color:var(--red);min-width:55px">10.0%</div>
+          </div>
+          <div class="anote">Standard is ~10%. Commission is taken from rewards, not your stake.</div>
+        </div>
+        <div class="eff-apy" style="margin-top:14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text4);font-weight:700">Effective APY</div>
+            <div style="font-size:10px;color:var(--text4);margin-top:2px">After commission</div>
+          </div>
+          <div id="effApy" style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;color:var(--green)">12.60%</div>
+        </div>
+      </div>
+      <div class="g st">
+        <div class="g-t">Earnings Breakdown</div>
+        <div class="eg">
+          <div class="eb"><div class="ep">Daily</div><div class="em" id="edm">0.00</div><div class="eu" id="edu">$0.00</div></div>
+          <div class="eb"><div class="ep">Weekly</div><div class="em" id="ewm">0.00</div><div class="eu" id="ewu">$0.00</div></div>
+          <div class="eb"><div class="ep">Monthly</div><div class="em" id="emm">0.00</div><div class="eu" id="emu">$0.00</div></div>
+          <div class="eb"><div class="ep">Yearly</div><div class="em" id="eym">0.00</div><div class="eu" id="eyu">$0.00</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="g st" style="display:flex;flex-direction:column">
+      <div class="g-t">Savings Goals</div>
+      <div class="gw" id="gW"></div>
+      <div class="ga" onclick="addGoal()">+ Add Goal</div>
+    </div>
+  </div>
+
+  <div class="g st" style="margin-bottom:16px">
+    <div class="g-t">Achievements</div>
+    <div class="ag" id="aG"></div>
+  </div>
+
+  <div class="g st">
+    <div class="g-t">How Much MON Do You Need?</div>
+    <div class="cr">
+      <div class="cb"><div class="cl">Target</div><div class="ct">$100 / month passive income</div><div class="cm" id="c1m">—</div><div class="cc" id="c1c">—</div></div>
+      <div class="cb"><div class="cl">Target</div><div class="ct">$500 / month passive income</div><div class="cm" id="c5m">—</div><div class="cc" id="c5c">—</div></div>
+      <div class="cb"><div class="cl">Target</div><div class="ct">$1,000 / month passive income</div><div class="cm" id="c10m">—</div><div class="cc" id="c10c">—</div></div>
+      <div class="cb"><div class="cl">Target</div><div class="ct">$5,000 / month passive income</div><div class="cm" id="c50m">—</div><div class="cc" id="c50c">—</div></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    Price data from CoinGecko (free API · no auth · VPN safe) · APY from
+    <a href="https://monadvision.com/validators" target="_blank" rel="noopener">MonadVision</a>
+    · All data stored locally · Not financial advice
+  </div>
+</div>
+
+<div class="mbg" id="modal">
+  <div class="mbox">
+    <h3 id="mT">Edit Goal</h3>
+    <div class="fd"><div class="fl">Goal Name</div><input type="text" id="mN" placeholder="e.g. Diamond Hands Fund"></div>
+    <div class="fd"><div class="fl">Target MON</div><input type="number" id="mA" placeholder="e.g. 100000" min="0" step="any"></div>
+    <div class="mf">
+      <button class="btn bo" onclick="closeModal()">Cancel</button>
+      <button class="btn bp" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div class="ti" id="tI">🏆</div>
+  <div class="tm" id="tM">Achievement Unlocked!</div>
+</div>
+
+<script>
+const KEY='mon_staker_v4';
+let S={bal:0,apy:14,comm:10,goals:[],unlocked:[],price:0,priceChg:0};
+
+function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);S={...S,...d};if(S.comm===undefined)S.comm=10}}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({bal:S.bal,apy:S.apy,comm:S.comm,goals:S.goals,unlocked:S.unlocked}))}catch(e){}}
+
+/* ── Price (VPN-friendly: CoinGecko free, no key, generous timeout, fallback) ── */
+const APIS=[
+  {url:'https://api.coingecko.com/api/v3/simple/price?ids=monad&vs_currencies=usd&include_24hr_change=true',
+   get:d=>({p:d.monad?.usd||0,c:d.monad?.usd_24h_change||0})},
+  {url:'https://api.coingecko.com/api/v3/coins/monad?localization=false&tickers=false&community_data=false&developer_data=false',
+   get:d=>({p:d.market_data?.current_price?.usd||0,c:d.market_data?.price_change_percentage_24h||0})},
+];
+let aI=0;
+
+async function fetchPrice(){
+  const ts=document.getElementById('vPT');
+  for(let i=0;i<APIS.length;i++){
+    const api=APIS[(aI+i)%APIS.length];
+    try{
+      const ac=new AbortController(),t=setTimeout(()=>ac.abort(),15000);
+      const r=await fetch(api.url,{signal:ac.signal,headers:{Accept:'application/json'},cache:'no-store'});
+      clearTimeout(t);
+      if(r.status===429){aI=(aI+1)%APIS.length;continue}
+      if(!r.ok)throw 0;
+      const d=await r.json(),{p,c}=api.get(d);
+      if(p>0){S.price=p;S.priceChg=c;aI=(aI+i)%APIS.length;
+        ts.textContent='updated '+new Date().toLocaleTimeString();render();return}
+    }catch(e){}
+  }
+  if(S.price<=0){S.price=0.027;ts.textContent='fallback ~$0.027'}
+  else ts.textContent='cached · retrying';
+  render();
+}
+
+/* ── Format ── */
+function fM(n){
+  if(n>=1e9)return(n/1e9).toFixed(2)+'B';if(n>=1e6)return(n/1e6).toFixed(2)+'M';
+  if(n>=1e4)return(n/1e3).toFixed(1)+'K';if(n>=100)return n.toFixed(1);return n.toFixed(2);
+}
+function fU(n){
+  if(n>=1e6)return'$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return'$'+(n/1e3).toFixed(2)+'K';
+  return'$'+n.toFixed(2);
+}
+
+/* ── Earnings (commission-adjusted) ── */
+function effApy(){return S.apy*(1-S.comm/100)}
+function earn(){const r=effApy()/100,d=S.bal*r/365;return{d,w:d*7,m:d*30.44,y:S.bal*r}}
+
+/* ── Render ── */
+function render(){
+  const p=S.price,e=earn();
+  document.getElementById('vP').textContent=p>0?'$'+p.toFixed(4):'—';
+  const b=document.getElementById('vPB');
+  if(S.priceChg!==0){b.textContent=(S.priceChg>=0?'+':'')+S.priceChg.toFixed(2)+'% 24h';b.className='sb '+(S.priceChg>=0?'up':'down')}
+  else{b.textContent='—';b.className='sb ne'}
+  const eA=effApy();
+  document.getElementById('vA').textContent=eA.toFixed(2)+'%';
+  document.getElementById('vAC').textContent=S.apy.toFixed(1)+'% base · '+S.comm.toFixed(1)+'% commission';
+  document.getElementById('iA').value=S.apy;
+  document.getElementById('aN').textContent=S.apy.toFixed(1)+'%';
+  document.getElementById('iC').value=S.comm;
+  document.getElementById('cN').textContent=S.comm.toFixed(1)+'%';
+  document.getElementById('effApy').textContent=eA.toFixed(2)+'%';
+  document.getElementById('vV').textContent=fU(S.bal*p);
+  document.getElementById('vVM').textContent=fM(S.bal)+' MON staked';
+  document.getElementById('vD').textContent=fM(e.d)+' MON';
+  document.getElementById('vDU').textContent='≈ '+fU(e.d*p)+' / day';
+  document.getElementById('edm').textContent=fM(e.d);document.getElementById('edu').textContent=fU(e.d*p);
+  document.getElementById('ewm').textContent=fM(e.w);document.getElementById('ewu').textContent=fU(e.w*p);
+  document.getElementById('emm').textContent=fM(e.m);document.getElementById('emu').textContent=fU(e.m*p);
+  document.getElementById('eym').textContent=fM(e.y);document.getElementById('eyu').textContent=fU(e.y*p);
+  if(p>0&&S.apy>0){
+    const eR=effApy()/100;
+    [[100,'c1'],[500,'c5'],[1000,'c10'],[5000,'c50']].forEach(([t,id])=>{
+      const need=(t/p)/eR*12;
+      document.getElementById(id+'m').textContent=fM(need)+' MON';
+      document.getElementById(id+'c').textContent='Cost: '+fU(need*p);
+    });
+  }
+  const inp=document.getElementById('iB');
+  if(document.activeElement!==inp)inp.value=S.bal||'';
+  renderGoals();renderAch();
+}
+
+/* ── Balance ── */
+function saveBal(){
+  const old=S.bal;S.bal=Math.max(0,parseFloat(document.getElementById('iB').value)||0);
+  save();checkAch(old);render();
+}
+document.getElementById('iB').addEventListener('keydown',e=>{if(e.key==='Enter')saveBal()});
+
+/* ── APY ── */
+document.getElementById('iA').addEventListener('input',e=>{
+  S.apy=parseFloat(e.target.value);
+  document.getElementById('aN').textContent=S.apy.toFixed(1)+'%';
+  save();render();
+});
+
+/* ── Commission ── */
+document.getElementById('iC').addEventListener('input',e=>{
+  S.comm=parseFloat(e.target.value);
+  document.getElementById('cN').textContent=S.comm.toFixed(1)+'%';
+  save();render();
+});
+
+/* ── Goals ── */
+let eI=null;
+function addGoal(){S.goals.push({id:Date.now().toString(36),name:'Goal #'+(S.goals.length+1),target:10000});save();render()}
+function delGoal(i){S.goals.splice(i,1);save();render()}
+function editGoal(i){
+  eI=i;const g=S.goals[i];
+  document.getElementById('mT').textContent='Edit Goal';
+  document.getElementById('mN').value=g.name;
+  document.getElementById('mA').value=g.target;
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.getElementById('mN').focus(),100);
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');eI=null}
+function saveModal(){
+  if(eI===null)return;
+  S.goals[eI].name=document.getElementById('mN').value.trim()||'Untitled';
+  S.goals[eI].target=Math.max(0,parseFloat(document.getElementById('mA').value)||0);
+  save();closeModal();render();
+}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+document.getElementById('mA').addEventListener('keydown',e=>{if(e.key==='Enter')saveModal()});
+
+function renderGoals(){
+  const w=document.getElementById('gW');
+  if(!S.goals.length){w.innerHTML='<div class="ge">No goals yet.<br>Add one to track your progress!</div>';return}
+  const e=earn(),p=S.price;
+  w.innerHTML=S.goals.map((g,i)=>{
+    const pct=g.target>0?Math.min(100,S.bal/g.target*100):100,done=pct>=100;
+    const rem=Math.max(0,g.target-S.bal),days=e.d>0?rem/e.d:Infinity;
+    const eta=days===Infinity?'Enter balance to calc ETA':days<=0?'Reached!':days<1?'< 1 day':days<30?Math.ceil(days)+' day'+(Math.ceil(days)>1?'s':''):days<365?(days/30.44).toFixed(1)+' months':(days/365).toFixed(1)+' years';
+    return`<div class="gi"><div class="gt"><div class="gn" onclick="editGoal(${i})" title="Click to edit">${g.name}</div><div class="gb"><button class="btn bs bo" onclick="editGoal(${i})">✏️</button><button class="btn bs bd" onclick="delGoal(${i})">✕</button></div></div><div class="gtr"><div class="gf${done?' dn':''}" style="width:${pct}%"></div></div><div class="ginfo"><span>${fM(S.bal)} / ${fM(g.target)} MON</span><span class="gpct${done?' ok':''}">${pct.toFixed(1)}%</span></div><div class="gmeta">⏱ ETA via staking: ${eta}<br>${done?'<span class="gd">✓ Goal achieved!</span>':'Need <span class="gc">'+fM(rem)+' MON ('+fU(rem*p)+')</span> more'}</div></div>`;
+  }).join('');
+}
+
+/* ── Achievements ── */
+const T=[
+  {t:100,e:'🌱',n:'Seedling'},{t:500,e:'🌿',n:'Sprout'},
+  {t:1000,e:'⭐',n:'1K Club'},{t:2000,e:'🔥',n:'2K Fire'},
+  {t:3000,e:'💎',n:'3K Diamond'},{t:4000,e:'🎯',n:'4K Focus'},
+  {t:5000,e:'🚀',n:'5K Rocket'},{t:6000,e:'⚡',n:'6K Bolt'},
+  {t:7000,e:'🌊',n:'7K Wave'},{t:8000,e:'🦾',n:'8K Iron'},
+  {t:9000,e:'🔮',n:'9K Oracle'},{t:10000,e:'🏆',n:'10K Legend'},
+  {t:15000,e:'👑',n:'15K Royal'},{t:20000,e:'🌟',n:'20K Star'},
+  {t:25000,e:'🔱',n:'25K Trident'},{t:50000,e:'🐋',n:'50K Whale'},
+  {t:75000,e:'🌕',n:'75K Moon'},{t:100000,e:'💰',n:'100K Titan'},
+  {t:250000,e:'🏛️',n:'250K Vault'},{t:500000,e:'🗿',n:'500K Monolith'},
+  {t:1000000,e:'🌐',n:'1M Ascended'},
+];
+
+function checkAch(){
+  T.forEach(a=>{if(S.bal>=a.t&&!S.unlocked.includes(a.t)){S.unlocked.push(a.t);showToast(a.e,a.n+' — '+fM(a.t)+' MON!')}});
+  save();
+}
+function renderAch(){
+  document.getElementById('aG').innerHTML=T.map(a=>{
+    const on=S.bal>=a.t;
+    return`<div class="ac ${on?'on':'off'}">${on?'<div class="ack">✓</div>':''}<div class="ae">${a.e}</div><div class="al">${a.n}</div><div class="av">${fM(a.t)}</div></div>`;
+  }).join('');
+}
+
+/* ── Toast ── */
+let tT=null;
+function showToast(i,m){
+  document.getElementById('tI').textContent=i;document.getElementById('tM').textContent=m;
+  const t=document.getElementById('toast');t.classList.add('pop');
+  if(tT)clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('pop'),4500);
+}
+
+/* ── Reset ── */
+function resetAll(){
+  if(!confirm('Clear all saved data? This cannot be undone.'))return;
+  localStorage.removeItem(KEY);
+  S={bal:0,apy:14,comm:10,goals:[],unlocked:[],price:S.price,priceChg:S.priceChg};render();
+}
+
+/* ── Init ── */
+load();render();fetchPrice();setInterval(fetchPrice,60000);
+</script>
+</body>
+</html>
