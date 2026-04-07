@@ -539,12 +539,12 @@ document.getElementById('mA').addEventListener('keydown',e=>{if(e.key==='Enter')
 function renderGoals(){
   const w=document.getElementById('gW');
   if(!S.goals.length){w.innerHTML='<div class="ge">No goals yet.<br>Add one to track your progress!</div>';return}
-  const e=earn(),p=S.price;
+  const p=S.price;
   w.innerHTML=S.goals.map((g,i)=>{
     const pct=g.target>0?Math.min(100,S.bal/g.target*100):100,done=pct>=100;
-    const rem=Math.max(0,g.target-S.bal),days=e.d>0?rem/e.d:Infinity;
-    const eta=days===Infinity?'Enter balance to calc ETA':days<=0?'Reached!':days<1?'< 1 day':days<30?Math.ceil(days)+' day'+(Math.ceil(days)>1?'s':''):days<365?(days/30.44).toFixed(1)+' months':(days/365).toFixed(1)+' years';
-    return`<div class="gi"><div class="gt"><div class="gn" onclick="editGoal(${i})" title="Click to edit">${g.name}</div><div class="gb"><button class="btn bs bo" onclick="editGoal(${i})">✏️</button><button class="btn bs bd" onclick="delGoal(${i})">✕</button></div></div><div class="gtr"><div class="gf${done?' dn':''}" style="width:${pct}%"></div></div><div class="ginfo"><span>${fM(S.bal)} / ${fM(g.target)} MON</span><span class="gpct${done?' ok':''}">${pct.toFixed(1)}%</span></div><div class="gmeta">⏱ ETA via staking: ${eta}<br>${done?'<span class="gd">✓ Goal achieved!</span>':'Need <span class="gc">'+fM(rem)+' MON ('+fU(rem*p)+')</span> more'}</div></div>`;
+    const rem=Math.max(0,g.target-S.bal);
+    const goalDaily=g.target*effApy()/100/365,goalDailyUsd=goalDaily*p;
+    return`<div class="gi"><div class="gt"><div class="gn" onclick="editGoal(${i})" title="Click to edit">${g.name}</div><div class="gb"><button class="btn bs bo" onclick="editGoal(${i})">✏️</button><button class="btn bs bd" onclick="delGoal(${i})">✕</button></div></div><div class="gtr"><div class="gf${done?' dn':''}" style="width:${pct}%"></div></div><div class="ginfo"><span>${fM(S.bal)} / ${fM(g.target)} MON</span><span class="gpct${done?' ok':''}">${pct.toFixed(1)}%</span></div><div class="gmeta"><span class="gc">${fM(goalDaily)} MON / day</span> ≈ <span style="color:var(--green)">${fU(goalDailyUsd)} / day</span><br>${done?'<span class="gd">✓ Goal achieved!</span>':'Need <span class="gc">'+fM(rem)+' MON ('+fU(rem*p)+')</span> more'}</div></div>`;
   }).join('');
 }
 
