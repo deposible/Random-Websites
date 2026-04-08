@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0xBit — Changelog</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08090C;
+  --surface: #0E1015;
+  --surface2: #13161D;
+  --border: #1C1F2A;
+  --border2: #252938;
+  --text: #D4D2CF;
+  --text2: #8B8A87;
+  --text3: #555;
+  --amber: #E2A941;
+  --amber-dim: rgba(226,169,65,.12);
+  --green: #4ADE80;
+  --green-dim: rgba(74,222,128,.1);
+  --red: #F87171;
+  --red-dim: rgba(248,113,113,.1);
+  --blue: #60A5FA;
+  --blue-dim: rgba(96,165,250,.1);
+  --purple: #A78BFA;
+  --purple-dim: rgba(167,139,250,.1);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* grain overlay */
+body::after {
+  content:'';
+  position: fixed;
+  inset:0;
+  pointer-events: none;
+  opacity: .03;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  z-index: 9999;
+}
+
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 24px 120px;
+}
+
+/* HEADER */
+.hdr {
+  margin-bottom: 48px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.hdr::before {
+  content: '';
+  position: absolute;
+  top: -48px;
+  left: -200px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(226,169,65,.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.brand {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 5px;
+  color: var(--amber);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.hdr h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -.5px;
+  margin-bottom: 8px;
+}
+
+.hdr p {
+  color: var(--text2);
+  font-size: 14px;
+  font-weight: 300;
+}
+
+/* SECTION */
+.section {
+  margin-bottom: 32px;
+  animation: fadeIn .5s ease both;
+}
+
+.section:nth-child(2) { animation-delay: .05s; }
+.section:nth-child(3) { animation-delay: .1s; }
+.section:nth-child(4) { animation-delay: .15s; }
+
+@keyframes fadeIn {
+  from { opacity:0; transform: translateY(8px); }
+  to { opacity:1; transform: translateY(0); }
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-head:hover .section-title { color: #fff; }
+
+.section-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.section-icon.core { background: var(--amber-dim); color: var(--amber); }
+.section-icon.game { background: var(--blue-dim); color: var(--blue); }
+
+.section-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  transition: color .15s;
+  flex: 1;
+}
+
+.section-title .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text3);
+  margin-left: 8px;
+  font-weight: 400;
+}
+
+.chevron {
+  color: var(--text3);
+  font-size: 11px;
+  transition: transform .2s;
+}
+.section.collapsed .chevron { transform: rotate(-90deg); }
+.section.collapsed .entries { display: none; }
+
+.entries {
+  margin-left: 44px;
+  border-left: 1px solid var(--border);
+  padding-left: 20px;
+}
+
+/* ENTRY */
+.entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 13.5px;
+  color: var(--text2);
+  line-height: 1.55;
+}
+
+.entry::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 7px;
+}
+
+.entry.add::before { background: var(--green); }
+.entry.fix::before { background: var(--blue); }
+.entry.rem::before { background: var(--red); }
+.entry.imp::before { background: var(--purple); }
+.entry.note::before { background: var(--text3); }
+
+.entry .tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+.entry.add .tag { background: var(--green-dim); color: var(--green); }
+.entry.fix .tag { background: var(--blue-dim); color: var(--blue); }
+.entry.rem .tag { background: var(--red-dim); color: var(--red); }
+.entry.imp .tag { background: var(--purple-dim); color: var(--purple); }
+.entry.note .tag { display: none; }
+
+.entry .txt { flex:1; }
+.entry .txt code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: var(--surface2);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--amber);
+}
+
+/* mini badge for "all fixed" type blocks */
+.status-badge {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 2px 10px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-left: 8px;
+}
+.status-badge.ok { background: var(--green-dim); color: var(--green); }
+.status-badge.new { background: var(--amber-dim); color: var(--amber); }
+
+/* LEGEND */
+.legend {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 36px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text3);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+@media (max-width:600px) {
+  .wrap { padding: 32px 16px 80px; }
+  .hdr h1 { font-size: 24px; }
+  .entries { margin-left: 24px; padding-left: 14px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hdr">
+  <div class="brand">0xBIT</div>
+  <h1>Changelog <span style="font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--amber);font-weight:500;margin-left:4px">v1.8.0</span></h1>
+  <p>All info intact — compacted for quick scanning. Click sections to collapse.</p>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Added</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Fixed</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Improved</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Removed</div>
+</div>
+
+<!-- CORE/UI -->
+<div class="section collapsed" id="s-core">
+  <div class="section-head" onclick="toggle('s-core')">
+    <div class="section-icon core">⚙</div>
+    <div class="section-title">UI / Core<span class="num">11 changes</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry imp"><span class="tag">Imp</span><span class="txt">Updated toggle button UI look</span></div>
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Background on FPS counter</span></div>
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Hide In First Person (Customization) — moved Preferences to top-right of Customization tab</span></div>
+    <div class="entry imp"><span class="tag">Imp</span><span class="txt">Loading now starts as soon as UI appears — significantly faster startup</span></div>
+    <div class="entry add"><span class="tag">Add</span><span class="txt">New theme set: Bitcoin, Ethereum, Solana, Monad, Avalanche, Arbitrum, Polygon, Base</span></div>
+    <div class="entry rem"><span class="tag">Rem</span><span class="txt">Old themes replaced entirely</span></div>
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Cursor highlight positioning when UI scale changed</span></div>
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Open/close animations for the UI</span></div>
+    <div class="entry rem"><span class="tag">Rem</span><span class="txt">Click Ripple, Compact Mode, Background Blur, Rejoin On Script Updates, Max Logs, Auto Scroll, Clipboard Settings</span></div>
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Blocks now disappear when pressed</span></div>
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Aimbot console spam when not spawned — default theme not saving — themes moved to top of Customization</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 1 -->
+<div class="section collapsed" id="s-b1">
+  <div class="section-head" onclick="toggle('s-b1')">
+    <div class="section-icon game">1</div>
+    <div class="section-title">99 Nights In A Forest<span class="num">6 changes</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Events Tab — <code>Meteor Event</code>: Deposit Ores, Mine Ores Aura, Auto Smelt Obsidian</span></div>
+    <div class="entry add"><span class="tag">Add</span><span class="txt"><code>Lava Event</code>: Auto Sacrifice Cultists</span></div>
+    <div class="entry imp"><span class="tag">Imp</span><span class="txt">Tree Aura — significantly faster</span></div>
+    <div class="entry add"><span class="tag">Add</span><span class="txt">"Log" added to Fuel Fire whitelist</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 4 -->
+<div class="section collapsed" id="s-b4">
+  <div class="section-head" onclick="toggle('s-b4')">
+    <div class="section-icon game">4</div>
+    <div class="section-title">Driving Empire<span class="num">1 change</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Auto Farm ATMs — auto avoids other players</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 5 -->
+<div class="section collapsed" id="s-b5">
+  <div class="section-head" onclick="toggle('s-b5')">
+    <div class="section-icon game">5</div>
+    <div class="section-title">Dandys World<span class="status-badge ok">All Fixed</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry note"><span class="tag"></span><span class="txt">Everything back to 10/10</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 8 -->
+<div class="section collapsed" id="s-b8">
+  <div class="section-head" onclick="toggle('s-b8')">
+    <div class="section-icon game">8</div>
+    <div class="section-title">Flee The Facility<span class="num">7 changes</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Nameplates & Chams can both be toggled on simultaneously</span></div>
+    <div class="entry imp"><span class="tag">Imp</span><span class="txt">Shorter autofarming phrase</span></div>
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">All ESP issues, Save Players & Only Save Players Once</span></div>
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Capture All, Knock Aura, Knock Troll</span></div>
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Buy Bundles & Buy Crates</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 9 -->
+<div class="section collapsed" id="s-b9">
+  <div class="section-head" onclick="toggle('s-b9')">
+    <div class="section-icon game">9</div>
+    <div class="section-title">Saber Simulator<span class="num">1 change</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Grab Event Drops</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 10 -->
+<div class="section collapsed" id="s-b10">
+  <div class="section-head" onclick="toggle('s-b10')">
+    <div class="section-icon game">10</div>
+    <div class="section-title">Restaurant Tycoon 2<span class="status-badge ok">All Fixed</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Small errors resolved</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 13 -->
+<div class="section collapsed" id="s-b13">
+  <div class="section-head" onclick="toggle('s-b13')">
+    <div class="section-icon game">13</div>
+    <div class="section-title">Rocitizens<span class="num">1 change</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Updated to latest bypass method</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 14 -->
+<div class="section collapsed" id="s-b14">
+  <div class="section-head" onclick="toggle('s-b14')">
+    <div class="section-icon game">14</div>
+    <div class="section-title">Guts & Blackpowder<span class="num">6 changes</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Access unblocked — playable again</span></div>
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Notify On Mod</span></div>
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Aimbot section (best used in first person)</span></div>
+    <div class="entry imp"><span class="tag">Imp</span><span class="txt">Unpatched Kill Aura v1 & v2 — bypassed newest detection methods</span></div>
+    <div class="entry rem"><span class="tag">Rem</span><span class="txt">Fife Kill Aura, Anti-Grab, Anti-Infected, Anti-Broken Leg, Zombie ESP (all patched)</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 15 -->
+<div class="section collapsed" id="s-b15">
+  <div class="section-head" onclick="toggle('s-b15')">
+    <div class="section-icon game">15</div>
+    <div class="section-title">Epic Minigames<span class="num">2 changes</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Safest Auto-Farm — farms in a non-obvious way for supported games</span></div>
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Now shows if minigame is supported or not</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 17 -->
+<div class="section collapsed" id="s-b17">
+  <div class="section-head" onclick="toggle('s-b17')">
+    <div class="section-icon game">17</div>
+    <div class="section-title">Zombie Attack<span class="status-badge ok">All Fixed</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry note"><span class="tag"></span><span class="txt">Everything fixed — back to 10/10</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 18 -->
+<div class="section collapsed" id="s-b18">
+  <div class="section-head" onclick="toggle('s-b18')">
+    <div class="section-icon game">18</div>
+    <div class="section-title">Tower Of Hell<span class="num">2 changes</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Final Second Win now works properly and turns off Auto Win</span></div>
+    <div class="entry imp"><span class="tag">Imp</span><span class="txt">Recoded a lot of backend</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 20 -->
+<div class="section collapsed" id="s-b20">
+  <div class="section-head" onclick="toggle('s-b20')">
+    <div class="section-icon game">20</div>
+    <div class="section-title">Word Bomb<span class="num">1 change</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Grabbing your turn</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 21 -->
+<div class="section collapsed" id="s-b21">
+  <div class="section-head" onclick="toggle('s-b21')">
+    <div class="section-icon game">21</div>
+    <div class="section-title">Underground War 2.0<span class="num">8 changes</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry rem"><span class="tag">Rem</span><span class="txt">Auto Kill</span></div>
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Auto Upgrade, Claim Goals, Use Nuke, Target User</span></div>
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Auto Equip Sword & Shovel, Walk Through Dirt</span></div>
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Sniper Auto Shoot + a ton of new features</span></div>
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Auto Equip Sniper</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 22 -->
+<div class="section collapsed" id="s-b22">
+  <div class="section-head" onclick="toggle('s-b22')">
+    <div class="section-icon game">22</div>
+    <div class="section-title">Climb 1,000 Stairs<span class="num">1 change</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Teleport To Bottom & Top were swapped — now correct</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 23 -->
+<div class="section collapsed" id="s-b23">
+  <div class="section-head" onclick="toggle('s-b23')">
+    <div class="section-icon game">23</div>
+    <div class="section-title">Speed Run 4<span class="num">2 changes</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Auto Claim Hunt, Farm Energy</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 24 -->
+<div class="section collapsed" id="s-b24">
+  <div class="section-head" onclick="toggle('s-b24')">
+    <div class="section-icon game">24</div>
+    <div class="section-title">Hide Or Die<span class="num">4 changes</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Auto Spin Wheel, Claim Season Pass, Auto Kill Hiders, ESP</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 26 -->
+<div class="section collapsed" id="s-b26">
+  <div class="section-head" onclick="toggle('s-b26')">
+    <div class="section-icon game">26</div>
+    <div class="section-title">Critical Fantasy<span class="status-badge new">Unpatched</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry imp"><span class="tag">Imp</span><span class="txt">Script unpatched — improved ~100x from before</span></div>
+    <div class="entry imp"><span class="tag">Imp</span><span class="txt">Auto Stats unpatched</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 30 -->
+<div class="section collapsed" id="s-b30">
+  <div class="section-head" onclick="toggle('s-b30')">
+    <div class="section-icon game">30</div>
+    <div class="section-title">Don't Leave The Circle<span class="num">2 changes</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">All issues resolved</span></div>
+    <div class="entry add"><span class="tag">Add</span><span class="txt">New supported locations</span></div>
+  </div>
+</div>
+
+<!-- BLOCK 33 -->
+<div class="section collapsed" id="s-b33">
+  <div class="section-head" onclick="toggle('s-b33')">
+    <div class="section-icon game">33</div>
+    <div class="section-title">Slime Slayer RPG Online<span class="num">12 changes</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Auto Swing, Buy Zones, Auto Dismantle, Auto Claim Gamepass, Auto Rebirth, Auto Claim Daily, Auto Sell Materials, Auto Summon, Auto Eggs</span></div>
+    <div class="entry fix"><span class="tag">Fix</span><span class="txt">Kill Aura (recoded), Upgrade Stats, Infinite Stamina, Farming & Farm Nearest</span></div>
+    <div class="entry imp"><span class="tag">Imp</span><span class="txt">Buy Zones unpatched — Auto Rebirth reworked to be faster</span></div>
+    <div class="entry rem"><span class="tag">Rem</span><span class="txt">Always Sprint (kinda patched)</span></div>
+    <div class="entry add"><span class="tag">Add</span><span class="txt">Rewind when Maxed Level</span></div>
+  </div>
+</div>
+
+<!-- EMPTY BLOCKS -->
+<div class="section collapsed" id="s-empty">
+  <div class="section-head" onclick="toggle('s-empty')">
+    <div class="section-icon game" style="opacity:.4">—</div>
+    <div class="section-title" style="color:var(--text3)">Lootify · Evade · Hide n Seek Extreme · Ninja Legends<span class="num">listed, no changes</span></div>
+    <div class="chevron">▼</div>
+  </div>
+  <div class="entries">
+    <div class="entry note"><span class="tag"></span><span class="txt">Blocks 11, 12, 16, 19 — present in update with no noted changes</span></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function toggle(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+</script>
+</body>
+</html>
