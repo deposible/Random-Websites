@@ -202,6 +202,19 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 20px var(--purple
 }
 .live-toggle:hover{background:var(--purple)}
 .live-toggle.active{background:var(--green);color:var(--bg)}
+.purchase-item{
+  display:flex;align-items:center;gap:8px;background:var(--bg);
+  border:1px solid var(--border);border-radius:var(--r-xs);padding:6px 10px;
+  font-size:10px;color:var(--text2);
+}
+.purchase-item .p-amt{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--amber);min-width:70px}
+.purchase-item .p-date{color:var(--text4);font-family:'IBM Plex Mono',monospace;font-size:9px}
+.purchase-item .p-note{color:var(--text3);flex:1;font-style:italic}
+.purchase-item .p-del{
+  background:none;border:none;color:var(--red);cursor:pointer;font-size:11px;
+  font-weight:700;padding:2px 6px;opacity:.5;transition:opacity .2s;
+}
+.purchase-item .p-del:hover{opacity:1}
 
 /* Goals */
 .gw{display:flex;flex-direction:column;gap:10px;margin-top:8px;flex:1}
@@ -349,7 +362,7 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 20px var(--purple
     <div class="live-usd" id="liveUsd">≈ $0.00</div>
     <div class="live-meta">
       <div class="live-meta-item">
-        <div class="live-meta-label">Gained Since Start</div>
+        <div class="live-meta-label">Staking Rewards</div>
         <div class="live-meta-val" id="liveGained" style="color:var(--green)">0.00 MON</div>
         <div class="live-meta-sub" id="liveGainedUsd">≈ $0.00</div>
       </div>
@@ -370,6 +383,27 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 20px var(--purple
       <label style="margin-left:auto">Initial Balance</label>
       <input type="number" id="stakeInitBal" placeholder="MON at start" min="0" step="any" style="width:110px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-xs);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 8px;outline:none">
       <button class="live-toggle" id="liveSaveBtn" onclick="saveLiveSettings()">Save</button>
+    </div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="live-label" style="margin:0"><span style="font-size:11px">📦</span> Purchase History</div>
+        <button class="live-toggle" onclick="showAddPurchase()" style="font-size:9px;padding:4px 10px">+ Add Purchase</button>
+      </div>
+      <div id="purchaseForm" style="display:none;margin-bottom:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-xs);padding:10px;display:none">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <input type="number" id="purchaseAmt" placeholder="MON amount" min="0" step="any" style="flex:1;min-width:80px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-xs);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 8px;outline:none">
+          <input type="datetime-local" id="purchaseDate" style="flex:1;min-width:140px">
+          <input type="text" id="purchaseNote" placeholder="Note (optional)" style="flex:1;min-width:80px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-xs);color:var(--text);font-family:'Syne',sans-serif;font-size:11px;padding:6px 8px;outline:none">
+          <button class="live-toggle" onclick="addPurchase()" style="font-size:9px;padding:5px 12px;background:var(--green);color:var(--bg)">Add</button>
+          <button class="live-toggle" onclick="hidePurchaseForm()" style="font-size:9px;padding:5px 8px;background:var(--red);color:var(--bg)">X</button>
+        </div>
+      </div>
+      <div id="purchaseList" style="display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto"></div>
+      <div id="purchaseEmpty" style="font-size:10px;color:var(--text4);text-align:center;padding:8px">No purchases logged. Purchases are subtracted from "Staking Rewards" so they don't inflate your gains.</div>
+      <div id="purchaseTotal" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--text3);display:flex;justify-content:space-between">
+        <span>Total Purchased</span>
+        <span id="purchaseTotalAmt" style="font-family:'IBM Plex Mono',monospace;color:var(--amber)">0 MON</span>
+      </div>
     </div>
   </div>
   <div style="text-align:center;margin-bottom:14px">
@@ -472,10 +506,10 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 20px var(--purple
 
 <script>
 const KEY='mon_staker_v4';
-let S={bal:0,apy:14,comm:10,goals:[],unlocked:[],price:0,priceChg:0,liveOn:false,stakeStart:'',stakeInitBal:0};
+let S={bal:0,apy:14,comm:10,goals:[],unlocked:[],price:0,priceChg:0,liveOn:false,stakeStart:'',stakeInitBal:0,purchases:[]};
 
-function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);S={...S,...d};if(S.comm===undefined)S.comm=10}}catch(e){}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({bal:S.bal,apy:S.apy,comm:S.comm,goals:S.goals,unlocked:S.unlocked,liveOn:S.liveOn,stakeStart:S.stakeStart,stakeInitBal:S.stakeInitBal}))}catch(e){}}
+function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);S={...S,...d};if(S.comm===undefined)S.comm=10;if(!S.purchases)S.purchases=[]}}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({bal:S.bal,apy:S.apy,comm:S.comm,goals:S.goals,unlocked:S.unlocked,liveOn:S.liveOn,stakeStart:S.stakeStart,stakeInitBal:S.stakeInitBal,purchases:S.purchases}))}catch(e){}}
 
 /* ── Price (VPN-friendly: CoinGecko free, no key, generous timeout, fallback) ── */
 const APIS=[
@@ -681,6 +715,10 @@ function renderAch(){
 /* ── Live Ticker ── */
 let liveInterval = null;
 
+function getTotalPurchased(){
+  return (S.purchases||[]).reduce((sum,p)=>sum+p.amt,0);
+}
+
 function getLiveBal(){
   if(!S.stakeStart||!S.bal) return S.bal;
   const start = new Date(S.stakeStart).getTime();
@@ -688,7 +726,7 @@ function getLiveBal(){
   if(now<=start) return S.bal;
   const secElapsed = (now - start)/1000;
   const ratePerSec = S.stakeInitBal * (effApy()/100) / 365 / 86400;
-  return S.stakeInitBal + (ratePerSec * secElapsed);
+  return S.stakeInitBal + (ratePerSec * secElapsed) + getTotalPurchased();
 }
 
 function updateLiveTicker(){
@@ -696,7 +734,8 @@ function updateLiveTicker(){
   const liveBal = getLiveBal();
   const p = S.price;
   const perSec = S.bal>0 ? S.bal * (effApy()/100) / 365 / 86400 : 0;
-  const gained = liveBal - S.stakeInitBal;
+  const totalPurchased = getTotalPurchased();
+  const gained = liveBal - S.stakeInitBal - totalPurchased;
 
   document.getElementById('liveBal').textContent = liveBal.toFixed(6) + ' MON';
   document.getElementById('liveUsd').textContent = '≈ ' + fU(liveBal * p);
@@ -715,8 +754,18 @@ function updateLiveTicker(){
   }
 }
 
+function defaultDatetime(setTime8am){
+  const d = new Date();
+  if(setTime8am){d.setHours(8,0,0,0)}
+  return d.toISOString().slice(0,16);
+}
+
 function toggleLive(){
   S.liveOn = !S.liveOn;
+  if(S.liveOn && !S.stakeStart){
+    S.stakeStart = defaultDatetime(false);
+    S.stakeInitBal = S.stakeInitBal || S.bal;
+  }
   save();
   applyLiveState();
 }
@@ -732,6 +781,7 @@ function applyLiveState(){
     if(S.stakeInitBal) document.getElementById('stakeInitBal').value = S.stakeInitBal;
     if(!liveInterval) liveInterval = setInterval(updateLiveTicker, 100);
     updateLiveTicker();
+    renderPurchases();
   } else {
     wrap.style.display = 'none';
     btn.textContent = 'Enable Live Ticker';
@@ -741,13 +791,75 @@ function applyLiveState(){
 }
 
 function saveLiveSettings(){
-  const startVal = document.getElementById('stakeStart').value;
+  let startVal = document.getElementById('stakeStart').value;
   const initVal = parseFloat(document.getElementById('stakeInitBal').value)||0;
+  if(!startVal){
+    const d = new Date();d.setHours(8,0,0,0);
+    startVal = d.toISOString().slice(0,16);
+    document.getElementById('stakeStart').value = startVal;
+  }
   S.stakeStart = startVal;
   S.stakeInitBal = initVal > 0 ? initVal : S.bal;
   save();
   updateLiveTicker();
   showToast('✅','Live ticker settings saved!');
+}
+
+/* ── Purchases ── */
+function showAddPurchase(){
+  const f = document.getElementById('purchaseForm');
+  f.style.display = 'block';
+  const d = new Date();
+  document.getElementById('purchaseDate').value = d.toISOString().slice(0,16);
+  document.getElementById('purchaseAmt').value = '';
+  document.getElementById('purchaseNote').value = '';
+  document.getElementById('purchaseAmt').focus();
+}
+
+function hidePurchaseForm(){
+  document.getElementById('purchaseForm').style.display = 'none';
+}
+
+function addPurchase(){
+  const amt = parseFloat(document.getElementById('purchaseAmt').value)||0;
+  if(amt<=0){showToast('⚠️','Enter a valid MON amount');return}
+  let dateVal = document.getElementById('purchaseDate').value;
+  if(!dateVal){const d=new Date();d.setHours(8,0,0,0);dateVal=d.toISOString().slice(0,16)}
+  const note = document.getElementById('purchaseNote').value.trim();
+  S.purchases.push({amt,date:dateVal,note:note||'Purchase',id:Date.now()});
+  S.purchases.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  save();
+  hidePurchaseForm();
+  renderPurchases();
+  updateLiveTicker();
+  showToast('📦','Logged +'+fM(amt)+' MON purchase');
+}
+
+function delPurchase(id){
+  S.purchases = S.purchases.filter(p=>p.id!==id);
+  save();renderPurchases();updateLiveTicker();
+}
+
+function renderPurchases(){
+  const list = document.getElementById('purchaseList');
+  const empty = document.getElementById('purchaseEmpty');
+  const totalEl = document.getElementById('purchaseTotal');
+  const totalAmt = document.getElementById('purchaseTotalAmt');
+  if(!S.purchases||!S.purchases.length){
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    totalEl.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  totalEl.style.display = 'flex';
+  const tp = getTotalPurchased();
+  totalAmt.textContent = fM(tp) + ' MON ('+fU(tp*S.price)+')';
+  list.innerHTML = S.purchases.map(p=>{
+    const d = new Date(p.date);
+    const ds = d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    return`<div class="purchase-item"><span class="p-amt">+${fM(p.amt)} MON</span><span class="p-date">${ds}</span><span class="p-note">${p.note||''}</span><button class="p-del" onclick="delPurchase(${p.id})" title="Remove">✕</button></div>`;
+  }).join('');
 }
 
 /* ── Toast ── */
@@ -762,7 +874,7 @@ function showToast(i,m){
 function resetAll(){
   if(!confirm('Clear all saved data? This cannot be undone.'))return;
   localStorage.removeItem(KEY);
-  S={bal:0,apy:14,comm:10,goals:[],unlocked:[],price:S.price,priceChg:S.priceChg,liveOn:false,stakeStart:'',stakeInitBal:0};
+  S={bal:0,apy:14,comm:10,goals:[],unlocked:[],price:S.price,priceChg:S.priceChg,liveOn:false,stakeStart:'',stakeInitBal:0,purchases:[]};
   applyLiveState();render();
 }
 
