@@ -356,7 +356,8 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 20px var(--purple
     </div>
   </div>
 
-  <div class="live-wrap" id="liveWrap" style="display:none">
+  <div class="live-wrap" id="liveWrap">
+    <input type="hidden" id="iB" value="0">
     <div class="live-label"><span class="live-pulse"></span>Live Balance</div>
     <div class="live-bal" id="liveBal">0.000000 MON</div>
     <div class="live-usd" id="liveUsd">≈ $0.00</div>
@@ -384,6 +385,34 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 20px var(--purple
       <input type="number" id="stakeInitBal" placeholder="MON at start" min="0" step="any" style="width:110px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-xs);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 8px;outline:none">
       <button class="live-toggle" id="liveSaveBtn" onclick="saveLiveSettings()">Save</button>
     </div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:12px">
+      <div>
+        <div class="fl">APY Adjustment</div>
+        <div class="sl">
+          <input type="range" id="iA" min="1" max="30" step="0.1" value="14">
+          <div class="an" id="aN">14.0%</div>
+        </div>
+        <div class="anote">
+          Current range across MonadVision validators is ~12–16%.
+          <a href="https://monadvision.com/validators" target="_blank" rel="noopener">View validators →</a>
+        </div>
+      </div>
+      <div>
+        <div class="fl">Validator Commission %</div>
+        <div class="sl">
+          <input type="range" id="iC" min="0" max="50" step="0.5" value="10">
+          <div class="an" id="cN" style="color:var(--red);min-width:55px">10.0%</div>
+        </div>
+        <div class="anote">Standard is ~10%. Commission is taken from rewards, not your stake.</div>
+      </div>
+      <div class="eff-apy" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text4);font-weight:700">Effective APY</div>
+          <div style="font-size:10px;color:var(--text4);margin-top:2px">After commission</div>
+        </div>
+        <div id="effApy" style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;color:var(--green)">12.60%</div>
+      </div>
+    </div>
     <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div class="live-label" style="margin:0"><span style="font-size:11px">📦</span> Purchase History</div>
@@ -406,62 +435,22 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 20px var(--purple
       </div>
     </div>
   </div>
-  <div style="text-align:center;margin-bottom:14px">
-    <button class="live-toggle" id="liveToggleBtn" onclick="toggleLive()" style="font-size:11px;padding:8px 20px">Enable Live Ticker</button>
+
+  <div class="g st" style="margin-bottom:14px">
+    <div class="g-t">Savings Goals</div>
+    <div class="gw" id="gW"></div>
+    <div class="ga" onclick="addGoal()">+ Add Goal</div>
   </div>
 
-  <div class="cols">
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <div class="g st">
-        <div class="g-t">Staked Balance</div>
-        <div class="fd">
-          <div class="fl">Your MON Amount</div>
-          <div class="fr">
-            <input type="number" id="iB" placeholder="e.g. 50000" min="0" step="any">
-            <button class="btn bp" onclick="saveBal()">Save</button>
-          </div>
-        </div>
-        <div>
-          <div class="fl">APY Adjustment</div>
-          <div class="sl">
-            <input type="range" id="iA" min="1" max="30" step="0.1" value="14">
-            <div class="an" id="aN">14.0%</div>
-          </div>
-          <div class="anote">
-            Current range across MonadVision validators is ~12–16%.
-            <a href="https://monadvision.com/validators" target="_blank" rel="noopener">View validators →</a>
-          </div>
-        </div>
-        <div style="margin-top:14px">
-          <div class="fl">Validator Commission %</div>
-          <div class="sl">
-            <input type="range" id="iC" min="0" max="50" step="0.5" value="10">
-            <div class="an" id="cN" style="color:var(--red);min-width:55px">10.0%</div>
-          </div>
-          <div class="anote">Standard is ~10%. Commission is taken from rewards, not your stake.</div>
-        </div>
-        <div class="eff-apy" style="margin-top:14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text4);font-weight:700">Effective APY</div>
-            <div style="font-size:10px;color:var(--text4);margin-top:2px">After commission</div>
-          </div>
-          <div id="effApy" style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;color:var(--green)">12.60%</div>
-        </div>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px">
+    <div class="g st">
+      <div class="g-t">Earnings Breakdown</div>
+      <div class="eg">
+        <div class="eb"><div class="ep">Daily</div><div class="em" id="edm">0.00</div><div class="eu" id="edu">$0.00</div></div>
+        <div class="eb"><div class="ep">Weekly</div><div class="em" id="ewm">0.00</div><div class="eu" id="ewu">$0.00</div></div>
+        <div class="eb"><div class="ep">Monthly</div><div class="em" id="emm">0.00</div><div class="eu" id="emu">$0.00</div></div>
+        <div class="eb"><div class="ep">Yearly</div><div class="em" id="eym">0.00</div><div class="eu" id="eyu">$0.00</div></div>
       </div>
-      <div class="g st">
-        <div class="g-t">Earnings Breakdown</div>
-        <div class="eg">
-          <div class="eb"><div class="ep">Daily</div><div class="em" id="edm">0.00</div><div class="eu" id="edu">$0.00</div></div>
-          <div class="eb"><div class="ep">Weekly</div><div class="em" id="ewm">0.00</div><div class="eu" id="ewu">$0.00</div></div>
-          <div class="eb"><div class="ep">Monthly</div><div class="em" id="emm">0.00</div><div class="eu" id="emu">$0.00</div></div>
-          <div class="eb"><div class="ep">Yearly</div><div class="em" id="eym">0.00</div><div class="eu" id="eyu">$0.00</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="g st" style="display:flex;flex-direction:column">
-      <div class="g-t">Savings Goals</div>
-      <div class="gw" id="gW"></div>
-      <div class="ga" onclick="addGoal()">+ Add Goal</div>
     </div>
   </div>
 
@@ -590,13 +579,6 @@ function render(){
   renderGoals();renderAch();
 }
 
-/* ── Balance ── */
-function saveBal(){
-  const old=S.bal;S.bal=Math.max(0,parseFloat(document.getElementById('iB').value)||0);
-  save();checkAch(old);render();
-}
-document.getElementById('iB').addEventListener('keydown',e=>{if(e.key==='Enter')saveBal()});
-
 /* ── APY ── */
 document.getElementById('iA').addEventListener('input',e=>{
   S.apy=parseFloat(e.target.value);
@@ -720,26 +702,30 @@ function getTotalPurchased(){
 }
 
 function getLiveBal(){
-  if(!S.stakeStart||!S.bal) return S.bal;
+  const base = S.stakeInitBal + getTotalPurchased();
+  if(!S.stakeStart) return base;
   const start = new Date(S.stakeStart).getTime();
   const now = Date.now();
-  if(now<=start) return S.bal;
+  if(now<=start) return base;
   const secElapsed = (now - start)/1000;
-  const ratePerSec = S.stakeInitBal * (effApy()/100) / 365 / 86400;
-  return S.stakeInitBal + (ratePerSec * secElapsed) + getTotalPurchased();
+  const ratePerSec = base * (effApy()/100) / 365 / 86400;
+  return base + (ratePerSec * secElapsed);
 }
 
 function updateLiveTicker(){
-  if(!S.liveOn) return;
   const liveBal = getLiveBal();
   const p = S.price;
-  const perSec = S.bal>0 ? S.bal * (effApy()/100) / 365 / 86400 : 0;
   const totalPurchased = getTotalPurchased();
-  const gained = liveBal - S.stakeInitBal - totalPurchased;
+  const base = S.stakeInitBal + totalPurchased;
+  const gained = liveBal - base;
+  const perSec = liveBal > 0 ? liveBal * (effApy()/100) / 365 / 86400 : 0;
+
+  S.bal = liveBal;
+  document.getElementById('iB').value = liveBal;
 
   document.getElementById('liveBal').textContent = liveBal.toFixed(6) + ' MON';
-  document.getElementById('liveUsd').textContent = '≈ ' + fU(liveBal * p);
-  document.getElementById('liveGained').textContent = '+' + (gained>=1000?fM(gained):gained.toFixed(4)) + ' MON';
+  document.getElementById('liveUsd').textContent = '≈ $' + (liveBal * p).toFixed(6);
+  document.getElementById('liveGained').textContent = '+' + (gained>=1000?fM(gained):gained.toFixed(6)) + ' MON';
   document.getElementById('liveGainedUsd').textContent = '≈ ' + fU(gained * p);
   document.getElementById('livePerSec').textContent = perSec.toFixed(6);
   document.getElementById('livePerSecUsd').textContent = '≈ $' + (perSec*p).toFixed(6) + '/s';
@@ -754,40 +740,12 @@ function updateLiveTicker(){
   }
 }
 
-function defaultDatetime(setTime8am){
-  const d = new Date();
-  if(setTime8am){d.setHours(8,0,0,0)}
-  return d.toISOString().slice(0,16);
-}
-
-function toggleLive(){
-  S.liveOn = !S.liveOn;
-  if(S.liveOn && !S.stakeStart){
-    S.stakeStart = defaultDatetime(false);
-    S.stakeInitBal = S.stakeInitBal || S.bal;
-  }
-  save();
-  applyLiveState();
-}
-
-function applyLiveState(){
-  const wrap = document.getElementById('liveWrap');
-  const btn = document.getElementById('liveToggleBtn');
-  if(S.liveOn){
-    wrap.style.display = 'block';
-    btn.textContent = 'Disable Live Ticker';
-    btn.classList.add('active');
-    if(S.stakeStart) document.getElementById('stakeStart').value = S.stakeStart;
-    if(S.stakeInitBal) document.getElementById('stakeInitBal').value = S.stakeInitBal;
-    if(!liveInterval) liveInterval = setInterval(updateLiveTicker, 100);
-    updateLiveTicker();
-    renderPurchases();
-  } else {
-    wrap.style.display = 'none';
-    btn.textContent = 'Enable Live Ticker';
-    btn.classList.remove('active');
-    if(liveInterval){clearInterval(liveInterval);liveInterval=null}
-  }
+function startLiveTicker(){
+  if(S.stakeStart) document.getElementById('stakeStart').value = S.stakeStart;
+  if(S.stakeInitBal) document.getElementById('stakeInitBal').value = S.stakeInitBal;
+  if(!liveInterval) liveInterval = setInterval(updateLiveTicker, 100);
+  updateLiveTicker();
+  renderPurchases();
 }
 
 function saveLiveSettings(){
@@ -799,9 +757,9 @@ function saveLiveSettings(){
     document.getElementById('stakeStart').value = startVal;
   }
   S.stakeStart = startVal;
-  S.stakeInitBal = initVal > 0 ? initVal : S.bal;
+  S.stakeInitBal = initVal;
   save();
-  updateLiveTicker();
+  updateLiveTicker();render();
   showToast('✅','Live ticker settings saved!');
 }
 
@@ -831,13 +789,13 @@ function addPurchase(){
   save();
   hidePurchaseForm();
   renderPurchases();
-  updateLiveTicker();
+  updateLiveTicker();render();
   showToast('📦','Logged +'+fM(amt)+' MON purchase');
 }
 
 function delPurchase(id){
   S.purchases = S.purchases.filter(p=>p.id!==id);
-  save();renderPurchases();updateLiveTicker();
+  save();renderPurchases();updateLiveTicker();render();
 }
 
 function renderPurchases(){
@@ -874,12 +832,12 @@ function showToast(i,m){
 function resetAll(){
   if(!confirm('Clear all saved data? This cannot be undone.'))return;
   localStorage.removeItem(KEY);
-  S={bal:0,apy:14,comm:10,goals:[],unlocked:[],price:S.price,priceChg:S.priceChg,liveOn:false,stakeStart:'',stakeInitBal:0,purchases:[]};
-  applyLiveState();render();
+  S={bal:0,apy:14,comm:10,goals:[],unlocked:[],price:S.price,priceChg:S.priceChg,liveOn:true,stakeStart:'',stakeInitBal:0,purchases:[]};
+  startLiveTicker();render();
 }
 
 /* ── Init ── */
-load();render();fetchPrice();setInterval(fetchPrice,60000);applyLiveState();
+load();render();fetchPrice();setInterval(fetchPrice,60000);startLiveTicker();
 </script>
 </body>
 </html>
