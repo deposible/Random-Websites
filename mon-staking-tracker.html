@@ -550,17 +550,58 @@ function renderGoals(){
 
 /* ── Achievements ── */
 const T=[
-  {t:100,e:'🌱',n:'Seedling'},{t:500,e:'🌿',n:'Sprout'},
-  {t:1000,e:'⭐',n:'1K Club'},{t:2000,e:'🔥',n:'2K Fire'},
-  {t:3000,e:'💎',n:'3K Diamond'},{t:4000,e:'🎯',n:'4K Focus'},
-  {t:5000,e:'🚀',n:'5K Rocket'},{t:6000,e:'⚡',n:'6K Bolt'},
-  {t:7000,e:'🌊',n:'7K Wave'},{t:8000,e:'🦾',n:'8K Iron'},
-  {t:9000,e:'🔮',n:'9K Oracle'},{t:10000,e:'🏆',n:'10K Legend'},
-  {t:15000,e:'👑',n:'15K Royal'},{t:20000,e:'🌟',n:'20K Star'},
-  {t:25000,e:'🔱',n:'25K Trident'},{t:50000,e:'🐋',n:'50K Whale'},
-  {t:75000,e:'🌕',n:'75K Moon'},{t:100000,e:'💰',n:'100K Titan'},
-  {t:250000,e:'🏛️',n:'250K Vault'},{t:500000,e:'🗿',n:'500K Monolith'},
-  {t:1000000,e:'🌐',n:'1M Ascended'},
+  {t:5,e:'🐣',n:'Baby Steps',p:'~20B'},
+  {t:10,e:'🪙',n:'First Double',p:'~10B'},
+  {t:25,e:'🌱',n:'Seedling',p:'~4B'},
+  {t:67,e:'🎲',n:'Lucky Roll',p:'~1.5B'},
+  {t:69,e:'😏',n:'Nice.',p:'~1.45B'},
+  {t:100,e:'💯',n:'Triple Digits',p:'~1B'},
+  {t:125,e:'🌿',n:'Sprout',p:'~800M'},
+  {t:250,e:'🌾',n:'Quarter Up',p:'~400M'},
+  {t:420,e:'🍃',n:'Blaze It',p:'~238M'},
+  {t:500,e:'⭐',n:'Half K',p:'~200M'},
+  {t:750,e:'🔥',n:'Three Quarters',p:'~133M'},
+  {t:1000,e:'🏅',n:'1K Club',p:'~100M'},
+  {t:2500,e:'⚡',n:'Quarter Dime',p:'~40M'},
+  {t:5000,e:'🚀',n:'5K Rocket',p:'~20M'},
+  {t:7500,e:'🌊',n:'Tidal Wave',p:'~13.3M'},
+  {t:9000,e:'🔮',n:'Over 9000',p:'~11.1M'},
+  {t:10000,e:'🏆',n:'10K Legend',p:'~10M'},
+  {t:12500,e:'💪',n:'Iron Grip',p:'~8M'},
+  {t:15000,e:'👑',n:'Royal',p:'~6.67M'},
+  {t:20000,e:'🌟',n:'Supernova',p:'~5M'},
+  {t:25000,e:'🔱',n:'Trident',p:'~4M'},
+  {t:42069,e:'🤙',n:'The Meme Lord',p:'~2.38M'},
+  {t:50000,e:'🐋',n:'Whale Watching',p:'~2M'},
+  {t:69420,e:'👑',n:'Ultimate Nice',p:'~1.44M'},
+  {t:75000,e:'🌕',n:'Moonrise',p:'~1.33M'},
+  {t:100000,e:'💰',n:'Six Figures',p:'~1M'},
+  {t:125000,e:'🦁',n:'Lion Heart',p:'~800K'},
+  {t:150000,e:'🏰',n:'Fortress',p:'~667K'},
+  {t:200000,e:'🗡️',n:'Blade Runner',p:'~500K'},
+  {t:250000,e:'🏛️',n:'Vault Keeper',p:'~400K'},
+  {t:300000,e:'🛡️',n:'Shield Wall',p:'~333K'},
+  {t:375000,e:'⚔️',n:'War Chest',p:'~267K'},
+  {t:500000,e:'🗿',n:'Monolith',p:'~200K'},
+  {t:600000,e:'🌋',n:'Eruption',p:'~167K'},
+  {t:700000,e:'🦅',n:'Eagle Eye',p:'~143K'},
+  {t:750000,e:'☄️',n:'Comet',p:'~133K'},
+  {t:950000,e:'🔥',n:'Almost There',p:'~105K'},
+  {t:1000000,e:'🌐',n:'Millionaire',p:'~100K'},
+  {t:2500000,e:'💎',n:'Diamond Hands',p:'~40K'},
+  {t:5000000,e:'🏔️',n:'Summit',p:'~20K'},
+  {t:7500000,e:'🐉',n:'Dragon Hoard',p:'~13.3K'},
+  {t:10000000,e:'👁️',n:'All Seeing',p:'~10K'},
+  {t:11000000,e:'🌀',n:'Singularity',p:'~9.1K'},
+  {t:12500000,e:'⚡',n:'Thunder God',p:'~8K'},
+  {t:15000000,e:'🪐',n:'Planetary',p:'~6.67K'},
+  {t:25000000,e:'☀️',n:'Solar Emperor',p:'~4K'},
+  {t:40000000,e:'🏗️',n:'Top 2,500',p:'~2.5K'},
+  {t:100000000,e:'🌌',n:'Top 1,000',p:'~1K'},
+  {t:250000000,e:'🪬',n:'Top 400',p:'~400'},
+  {t:400000000,e:'⚜️',n:'Top 250',p:'~250'},
+  {t:1000000000,e:'🧬',n:'Top 100',p:'~100'},
+  {t:10000000000,e:'♾️',n:'Top 10',p:'~10'},
 ];
 
 function checkAch(){
@@ -570,7 +611,7 @@ function checkAch(){
 function renderAch(){
   document.getElementById('aG').innerHTML=T.map(a=>{
     const on=S.bal>=a.t;
-    return`<div class="ac ${on?'on':'off'}">${on?'<div class="ack">✓</div>':''}<div class="ae">${a.e}</div><div class="al">${a.n}</div><div class="av">${fM(a.t)}</div></div>`;
+    return`<div class="ac ${on?'on':'off'}">${on?'<div class="ack">✓</div>':''}<div class="ae">${a.e}</div><div class="al">${a.n}</div><div class="av">${fM(a.t)} MON</div>${a.p?`<div class="av" style="font-size:9px;color:#6b6560;margin-top:2px">Roughly ${a.p} holders possible</div>`:''}</div>`;
   }).join('');
 }
 
