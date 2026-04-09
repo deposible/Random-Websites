@@ -173,6 +173,36 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 20px var(--purple
 .em{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;color:var(--cyan)}
 .eu{font-size:11px;color:var(--text3);margin-top:2px;font-family:'IBM Plex Mono',monospace}
 
+/* Live Ticker */
+.live-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px;position:relative;overflow:hidden}
+.live-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--cyan),var(--green));background-size:200% 100%;animation:liveShimmer 3s ease infinite}
+@keyframes liveShimmer{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.live-pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 4px var(--green)}50%{opacity:.4;box-shadow:0 0 8px var(--green)}}
+.live-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text4);font-weight:700;display:flex;align-items:center}
+.live-bal{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:700;color:var(--cyan);margin:8px 0 2px;transition:color .2s}
+.live-usd{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text3)}
+.live-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.live-meta-item{text-align:center}
+.live-meta-label{font-size:8px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text4);font-weight:700;margin-bottom:4px}
+.live-meta-val{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--text)}
+.live-meta-sub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);margin-top:2px}
+.live-controls{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);align-items:center;flex-wrap:wrap}
+.live-controls label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text4);font-weight:700}
+.live-controls input[type="datetime-local"]{
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--r-xs);
+  color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;
+  padding:6px 8px;outline:none;
+}
+.live-controls input[type="datetime-local"]:focus{border-color:var(--purple)}
+.live-toggle{
+  background:var(--purple-deep);border:none;border-radius:var(--r-xs);
+  color:var(--text);font-family:'Syne',sans-serif;font-size:10px;font-weight:700;
+  padding:6px 14px;cursor:pointer;text-transform:uppercase;letter-spacing:1px;transition:background .2s;
+}
+.live-toggle:hover{background:var(--purple)}
+.live-toggle.active{background:var(--green);color:var(--bg)}
+
 /* Goals */
 .gw{display:flex;flex-direction:column;gap:10px;margin-top:8px;flex:1}
 .gi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:16px;transition:border-color .2s}
@@ -313,6 +343,39 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 20px var(--purple
     </div>
   </div>
 
+  <div class="live-wrap" id="liveWrap" style="display:none">
+    <div class="live-label"><span class="live-pulse"></span>Live Balance</div>
+    <div class="live-bal" id="liveBal">0.000000 MON</div>
+    <div class="live-usd" id="liveUsd">≈ $0.00</div>
+    <div class="live-meta">
+      <div class="live-meta-item">
+        <div class="live-meta-label">Gained Since Start</div>
+        <div class="live-meta-val" id="liveGained" style="color:var(--green)">0.00 MON</div>
+        <div class="live-meta-sub" id="liveGainedUsd">≈ $0.00</div>
+      </div>
+      <div class="live-meta-item">
+        <div class="live-meta-label">Staking Duration</div>
+        <div class="live-meta-val" id="liveDuration">0d 0h 0m</div>
+        <div class="live-meta-sub" id="liveDurationSub">&nbsp;</div>
+      </div>
+      <div class="live-meta-item">
+        <div class="live-meta-label">Per Second</div>
+        <div class="live-meta-val" id="livePerSec" style="color:var(--cyan)">0.000000</div>
+        <div class="live-meta-sub" id="livePerSecUsd">≈ $0.00</div>
+      </div>
+    </div>
+    <div class="live-controls">
+      <label>Started Staking</label>
+      <input type="datetime-local" id="stakeStart">
+      <label style="margin-left:auto">Initial Balance</label>
+      <input type="number" id="stakeInitBal" placeholder="MON at start" min="0" step="any" style="width:110px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-xs);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 8px;outline:none">
+      <button class="live-toggle" id="liveSaveBtn" onclick="saveLiveSettings()">Save</button>
+    </div>
+  </div>
+  <div style="text-align:center;margin-bottom:14px">
+    <button class="live-toggle" id="liveToggleBtn" onclick="toggleLive()" style="font-size:11px;padding:8px 20px">Enable Live Ticker</button>
+  </div>
+
   <div class="cols">
     <div style="display:flex;flex-direction:column;gap:14px">
       <div class="g st">
@@ -409,10 +472,10 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 20px var(--purple
 
 <script>
 const KEY='mon_staker_v4';
-let S={bal:0,apy:14,comm:10,goals:[],unlocked:[],price:0,priceChg:0};
+let S={bal:0,apy:14,comm:10,goals:[],unlocked:[],price:0,priceChg:0,liveOn:false,stakeStart:'',stakeInitBal:0};
 
 function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);S={...S,...d};if(S.comm===undefined)S.comm=10}}catch(e){}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({bal:S.bal,apy:S.apy,comm:S.comm,goals:S.goals,unlocked:S.unlocked}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({bal:S.bal,apy:S.apy,comm:S.comm,goals:S.goals,unlocked:S.unlocked,liveOn:S.liveOn,stakeStart:S.stakeStart,stakeInitBal:S.stakeInitBal}))}catch(e){}}
 
 /* ── Price (VPN-friendly: CoinGecko free, no key, generous timeout, fallback) ── */
 const APIS=[
@@ -615,6 +678,78 @@ function renderAch(){
   }).join('');
 }
 
+/* ── Live Ticker ── */
+let liveInterval = null;
+
+function getLiveBal(){
+  if(!S.stakeStart||!S.bal) return S.bal;
+  const start = new Date(S.stakeStart).getTime();
+  const now = Date.now();
+  if(now<=start) return S.bal;
+  const secElapsed = (now - start)/1000;
+  const ratePerSec = S.stakeInitBal * (effApy()/100) / 365 / 86400;
+  return S.stakeInitBal + (ratePerSec * secElapsed);
+}
+
+function updateLiveTicker(){
+  if(!S.liveOn) return;
+  const liveBal = getLiveBal();
+  const p = S.price;
+  const perSec = S.bal>0 ? S.bal * (effApy()/100) / 365 / 86400 : 0;
+  const gained = liveBal - S.stakeInitBal;
+
+  document.getElementById('liveBal').textContent = liveBal.toFixed(6) + ' MON';
+  document.getElementById('liveUsd').textContent = '≈ ' + fU(liveBal * p);
+  document.getElementById('liveGained').textContent = '+' + (gained>=1000?fM(gained):gained.toFixed(4)) + ' MON';
+  document.getElementById('liveGainedUsd').textContent = '≈ ' + fU(gained * p);
+  document.getElementById('livePerSec').textContent = perSec.toFixed(6);
+  document.getElementById('livePerSecUsd').textContent = '≈ $' + (perSec*p).toFixed(6) + '/s';
+
+  if(S.stakeStart){
+    const ms = Date.now() - new Date(S.stakeStart).getTime();
+    if(ms>0){
+      const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60),d=Math.floor(h/24);
+      document.getElementById('liveDuration').textContent = d+'d '+h%24+'h '+m%60+'m';
+      document.getElementById('liveDurationSub').textContent = s%60+'s elapsed';
+    }
+  }
+}
+
+function toggleLive(){
+  S.liveOn = !S.liveOn;
+  save();
+  applyLiveState();
+}
+
+function applyLiveState(){
+  const wrap = document.getElementById('liveWrap');
+  const btn = document.getElementById('liveToggleBtn');
+  if(S.liveOn){
+    wrap.style.display = 'block';
+    btn.textContent = 'Disable Live Ticker';
+    btn.classList.add('active');
+    if(S.stakeStart) document.getElementById('stakeStart').value = S.stakeStart;
+    if(S.stakeInitBal) document.getElementById('stakeInitBal').value = S.stakeInitBal;
+    if(!liveInterval) liveInterval = setInterval(updateLiveTicker, 100);
+    updateLiveTicker();
+  } else {
+    wrap.style.display = 'none';
+    btn.textContent = 'Enable Live Ticker';
+    btn.classList.remove('active');
+    if(liveInterval){clearInterval(liveInterval);liveInterval=null}
+  }
+}
+
+function saveLiveSettings(){
+  const startVal = document.getElementById('stakeStart').value;
+  const initVal = parseFloat(document.getElementById('stakeInitBal').value)||0;
+  S.stakeStart = startVal;
+  S.stakeInitBal = initVal > 0 ? initVal : S.bal;
+  save();
+  updateLiveTicker();
+  showToast('✅','Live ticker settings saved!');
+}
+
 /* ── Toast ── */
 let tT=null;
 function showToast(i,m){
@@ -627,11 +762,12 @@ function showToast(i,m){
 function resetAll(){
   if(!confirm('Clear all saved data? This cannot be undone.'))return;
   localStorage.removeItem(KEY);
-  S={bal:0,apy:14,comm:10,goals:[],unlocked:[],price:S.price,priceChg:S.priceChg};render();
+  S={bal:0,apy:14,comm:10,goals:[],unlocked:[],price:S.price,priceChg:S.priceChg,liveOn:false,stakeStart:'',stakeInitBal:0};
+  applyLiveState();render();
 }
 
 /* ── Init ── */
-load();render();fetchPrice();setInterval(fetchPrice,60000);
+load();render();fetchPrice();setInterval(fetchPrice,60000);applyLiveState();
 </script>
 </body>
 </html>
