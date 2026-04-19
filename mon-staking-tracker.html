@@ -696,34 +696,29 @@ async function findMONPool(){
   return monPoolCache;
 }
 
-function looksLikeStable(prices){
-  if(prices.length<5)return false;
-  const mean=prices.reduce((a,b)=>a+b,0)/prices.length;
-  if(mean<0.9||mean>1.1)return false;
-  const v=prices.reduce((a,b)=>a+(b-mean)**2,0)/prices.length;
-  return Math.sqrt(v)/mean<0.05;
-}
-
 async function gtOHLCV(timeframe,limit){
   const pool=await findMONPool();
+  const monAddr=pool.baseToken?.address;
+  if(!monAddr)throw new Error('no MON token address');
   for(const net of ['monad-mainnet','monad']){
-    const results=[];
-    for(const side of ['base','quote']){
-      try{
-        const d=await simpleFetch(`https://api.geckoterminal.com/api/v2/networks/${net}/pools/${pool.pairAddress}/ohlcv/${timeframe}?limit=${limit}&currency=usd&token=${side}`);
-        const list=d.data?.attributes?.ohlcv_list||[];
-        if(list.length)results.push({side,list,latest:list[0][4]});
-      }catch(e){}
-    }
-    if(!results.length)continue;
-    let best;
-    if(S.price>0){
-      results.sort((a,b)=>Math.abs(Math.log(a.latest/S.price))-Math.abs(Math.log(b.latest/S.price)));
-      best=results[0];
-    }else{
-      best=results.find(r=>!looksLikeStable(r.list.map(x=>x[4])))||results[0];
-    }
-    return best.list.map(x=>[x[0]*1000,x[4]]).filter(x=>x[1]>0).reverse();
+    try{
+      const d=await simpleFetch(`https://api.geckoterminal.com/api/v2/networks/${net}/pools/${pool.pairAddress}/ohlcv/${timeframe}?limit=${limit}&currency=usd&token=${monAddr}`);
+      const list=d.data?.attributes?.ohlcv_list||[];
+      if(list.length){
+        const closes=list.map(x=>x[4]).filter(v=>v>0);
+        if(closes.length){
+          const mean=closes.reduce((a,b)=>a+b,0)/closes.length;
+          if(mean>0.85&&mean<1.15){
+            const v=closes.reduce((a,b)=>a+(b-mean)**2,0)/closes.length;
+            if(Math.sqrt(v)/mean<0.08)throw new Error('stablecoin-shaped prices detected on '+net);
+          }
+          if(S.price>0&&Math.abs(Math.log(list[0][4]/S.price))>2){
+            throw new Error('OHLCV latest price too far from live price on '+net);
+          }
+        }
+        return list.map(x=>[x[0]*1000,x[4]]).filter(x=>x[1]>0).reverse();
+      }
+    }catch(e){}
   }
   throw new Error('GT all networks failed');
 }
@@ -744,7 +739,7 @@ const HIST_SOURCES=[
 
 async function fetchHistoricalPrices(){
   try{
-    const cached=JSON.parse(localStorage.getItem('mon_hist_cache_v2')||'null');
+    const cached=JSON.parse(localStorage.getItem('mon_hist_cache_v3')||'null');
     if(cached&&cached.data&&cached.data.length){
       histPrices=cached.data;renderPurchases();calcChange30d();render();
       if((Date.now()-cached.time)<86400000)return;
@@ -755,7 +750,7 @@ async function fetchHistoricalPrices(){
       const data=await src.fetch();
       if(data.length){
         histPrices=data;
-        try{localStorage.setItem('mon_hist_cache_v2',JSON.stringify({data,time:Date.now(),source:src.name}))}catch(e){}
+        try{localStorage.setItem('mon_hist_cache_v3',JSON.stringify({data,time:Date.now(),source:src.name}))}catch(e){}
         renderPurchases();calcChange30d();render();return;
       }
     }catch(e){}
@@ -1262,7 +1257,9 @@ document.addEventListener('visibilitychange',()=>{
   document.body.classList.toggle('hidden',document.hidden);
 });
 
-load();render();fetchHistoricalPrices();setInterval(fetchHistoricalPrices,3600000);fetchPrice();setInterval(fetchPrice,60000);startLiveTicker();loadChart(30);
+load();render();
+fetchPrice().then(()=>{fetchHistoricalPrices();setInterval(fetchHistoricalPrices,3600000)});
+setInterval(fetchPrice,60000);startLiveTicker();loadChart(30);
 </script>
 </body>
 </html>
