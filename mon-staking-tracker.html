@@ -200,10 +200,12 @@ body.hidden .live-wrap::before{animation-play-state:paused}
 .live-toggle:hover{background:var(--purple)}
 .live-toggle.active{background:var(--green);color:var(--bg)}
 .purchase-item{
-  display:flex;align-items:center;gap:8px;background:var(--bg);
-  border:1px solid var(--border);border-radius:var(--r-xs);padding:6px 10px;
+  display:flex;flex-direction:column;gap:3px;background:var(--bg);
+  border:1px solid var(--border);border-radius:var(--r-xs);padding:7px 10px;
   font-size:10px;color:var(--text2);
 }
+.p-row-main{display:flex;align-items:center;gap:8px}
+.p-row-pnl{display:flex;align-items:center;gap:6px;font-size:9px;padding-left:2px;flex-wrap:wrap}
 .purchase-item .p-amt{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--amber);min-width:70px}
 .purchase-item .p-date{color:var(--text4);font-family:'IBM Plex Mono',monospace;font-size:9px}
 .purchase-item .p-note{color:var(--text3);flex:1;font-style:italic}
@@ -214,6 +216,17 @@ body.hidden .live-wrap::before{animation-play-state:paused}
 .purchase-item .p-btn:hover{opacity:1}
 .purchase-item .p-btn.p-del:hover{color:var(--red)}
 .purchase-item .p-btn.p-edit:hover{color:var(--cyan)}
+.p-basis{color:var(--text4);font-family:'IBM Plex Mono',monospace}
+.p-sep{color:var(--text4)}
+.p-pnl{font-family:'IBM Plex Mono',monospace;font-weight:600}
+.p-pnl.up{color:var(--green)}
+.p-pnl.down{color:var(--red)}
+.p-pnl.pending{color:var(--text4);font-style:italic;font-weight:400}
+.pt-row{display:flex;justify-content:space-between;align-items:center}
+.pt-row > span:first-child{color:var(--text4)}
+.pt-row > span:last-child{font-family:'IBM Plex Mono',monospace;color:var(--amber)}
+.pt-pnl-row{padding-top:5px;border-top:1px solid var(--border);margin-top:3px}
+.pt-pnl-row > span:last-child{font-weight:700}
 
 .spark{width:100%;height:64px;margin-top:12px;display:block}
 
@@ -442,11 +455,13 @@ body.hidden .live-wrap::before{animation-play-state:paused}
           <button class="live-toggle" onclick="hidePurchaseForm()" style="font-size:9px;padding:5px 8px;background:var(--red);color:var(--bg)">X</button>
         </div>
       </div>
-      <div id="purchaseList" style="display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto"></div>
+      <div id="purchaseList" style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto"></div>
       <div id="purchaseEmpty" style="font-size:10px;color:var(--text4);text-align:center;padding:8px">No purchases logged. Purchases compound from their own timestamp, not the start date.</div>
-      <div id="purchaseTotal" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--text3);justify-content:space-between">
-        <span>Total Purchased</span>
-        <span id="purchaseTotalAmt" style="font-family:'IBM Plex Mono',monospace;color:var(--amber)">0 MON</span>
+      <div id="purchaseTotal" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--text3);flex-direction:column;gap:4px">
+        <div class="pt-row"><span>Total Purchased</span><span id="purchaseTotalAmt">0 MON</span></div>
+        <div class="pt-row"><span>Cost Basis</span><span id="purchaseBasisTotal">—</span></div>
+        <div class="pt-row"><span>Current Value</span><span id="purchaseCurrentTotal">—</span></div>
+        <div class="pt-row pt-pnl-row"><span>Total P/L</span><span id="purchasePnlTotal">—</span></div>
       </div>
     </div>
   </div>
@@ -613,6 +628,31 @@ async function fetchChange30d(){
   }catch(e){}
 }
 
+let histPrices=null;
+async function fetchHistoricalPrices(){
+  try{
+    const d=await smartFetch('https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=max');
+    histPrices=d.prices||[];
+    renderPurchases();
+  }catch(e){}
+}
+
+function priceOnDate(dateMs){
+  if(!histPrices||!histPrices.length)return null;
+  let lo=0,hi=histPrices.length-1;
+  while(lo<hi){
+    const mid=(lo+hi)>>1;
+    if(histPrices[mid][0]<dateMs)lo=mid+1;else hi=mid;
+  }
+  const candidates=[histPrices[Math.max(0,lo-1)],histPrices[lo]];
+  let closest=candidates[0],minDiff=Math.abs(dateMs-closest[0]);
+  for(const c of candidates){
+    const diff=Math.abs(dateMs-c[0]);
+    if(diff<minDiff){minDiff=diff;closest=c}
+  }
+  return closest[1];
+}
+
 async function loadChart(days){
   chartRange=days;
   document.querySelectorAll('.chart-tab').forEach(b=>b.classList.toggle('on',b.dataset.range===String(days)));
@@ -771,6 +811,7 @@ function render(){
     });
   }
   renderGoals(e.b,e.d);
+  renderPurchases();
   if(Math.abs(e.b-lastAchBal)>Math.max(1,lastAchBal*0.001)){renderAch(e.b);lastAchBal=e.b}
   checkAch(e.b);
 }
@@ -980,18 +1021,52 @@ function renderPurchases(){
   const list=document.getElementById('purchaseList');
   const empty=document.getElementById('purchaseEmpty');
   const totalEl=document.getElementById('purchaseTotal');
-  const totalAmt=document.getElementById('purchaseTotalAmt');
   if(!S.purchases||!S.purchases.length){
     list.innerHTML='';empty.style.display='block';totalEl.style.display='none';return;
   }
   empty.style.display='none';totalEl.style.display='flex';
-  const tp=(S.purchases||[]).reduce((s,p)=>s+p.amt,0);
-  totalAmt.textContent=fM(tp)+' MON ('+fU(tp*S.price)+')';
+  const curPrice=S.price;
+  let totalAmt=0,totalBasis=0,totalCurrent=0,tracked=0;
   list.innerHTML=S.purchases.map(p=>{
     const d=new Date(p.date);
     const ds=d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-    return`<div class="purchase-item"><span class="p-amt">+${fM(p.amt)} MON</span><span class="p-date">${ds}</span><span class="p-note">${p.note||''}</span><button class="p-btn p-edit" onclick="editPurchase(${p.id})" title="Edit">✎</button><button class="p-btn p-del" onclick="delPurchase(${p.id})" title="Remove">✕</button></div>`;
+    const basis=priceOnDate(d.getTime());
+    const basisValue=basis?p.amt*basis:0;
+    const curValue=p.amt*curPrice;
+    totalAmt+=p.amt;
+    if(basis&&curPrice>0){totalBasis+=basisValue;totalCurrent+=curValue;tracked++}
+    let pnlHTML;
+    if(!basis){
+      pnlHTML='<span class="p-pnl pending">price data loading…</span>';
+    }else if(curPrice<=0){
+      pnlHTML=`<span class="p-basis">@ $${basis.toFixed(4)}</span>`;
+    }else{
+      const pnl=curValue-basisValue;
+      const pnlPct=basisValue>0?(pnl/basisValue*100):0;
+      const cls=pnl>=0?'up':'down';
+      const arrow=pnl>=0?'↑':'↓';
+      const sign=pnl>=0?'+':'';
+      pnlHTML=`<span class="p-basis">@ $${basis.toFixed(4)}</span><span class="p-sep">·</span><span class="p-pnl ${cls}">${sign}${fU(Math.abs(pnl))} (${sign}${pnlPct.toFixed(1)}%) ${arrow}</span>`;
+    }
+    return`<div class="purchase-item"><div class="p-row-main"><span class="p-amt">+${fM(p.amt)} MON</span><span class="p-date">${ds}</span><span class="p-note">${p.note||''}</span><button class="p-btn p-edit" onclick="editPurchase(${p.id})" title="Edit">✎</button><button class="p-btn p-del" onclick="delPurchase(${p.id})" title="Remove">✕</button></div><div class="p-row-pnl">${pnlHTML}</div></div>`;
   }).join('');
+  document.getElementById('purchaseTotalAmt').textContent=fM(totalAmt)+' MON';
+  const basisEl=document.getElementById('purchaseBasisTotal');
+  const curEl=document.getElementById('purchaseCurrentTotal');
+  const pnlEl=document.getElementById('purchasePnlTotal');
+  if(tracked>0&&totalBasis>0){
+    basisEl.textContent=fU(totalBasis)+(tracked<S.purchases.length?' ('+tracked+'/'+S.purchases.length+')':'');
+    curEl.textContent=fU(totalCurrent);
+    const totalPnl=totalCurrent-totalBasis;
+    const totalPnlPct=(totalPnl/totalBasis)*100;
+    const sign=totalPnl>=0?'+':'';
+    const arrow=totalPnl>=0?'↑':'↓';
+    pnlEl.textContent=`${sign}${fU(Math.abs(totalPnl))} (${sign}${totalPnlPct.toFixed(2)}%) ${arrow}`;
+    pnlEl.style.color=totalPnl>=0?'var(--green)':'var(--red)';
+  }else{
+    basisEl.textContent='—';curEl.textContent='—';
+    pnlEl.textContent='loading…';pnlEl.style.color='';
+  }
 }
 
 function exportData(){
@@ -1038,7 +1113,7 @@ document.addEventListener('visibilitychange',()=>{
   document.body.classList.toggle('hidden',document.hidden);
 });
 
-load();render();fetchPrice();setInterval(fetchPrice,60000);fetchChange30d();setInterval(fetchChange30d,3600000);startLiveTicker();loadChart(30);
+load();render();fetchPrice();setInterval(fetchPrice,60000);fetchChange30d();setInterval(fetchChange30d,3600000);fetchHistoricalPrices();setInterval(fetchHistoricalPrices,3600000);startLiveTicker();loadChart(30);
 </script>
 </body>
 </html>
