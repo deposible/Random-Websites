@@ -606,22 +606,34 @@ const PRICE_SOURCES=[
   {
     name:'dexscreener',
     fetch:async()=>{
-      const d=await simpleFetch('https://api.dexscreener.com/latest/dex/search?q=MON');
-      const pairs=(d.pairs||[]).filter(p=>p.baseToken?.symbol==='MON'&&p.chainId==='monad');
-      if(!pairs.length)throw new Error('no pairs');
+      const d=await simpleFetch('https://api.dexscreener.com/latest/dex/search?q=monad');
+      const pairs=(d.pairs||[]).filter(p=>{
+        const sym=(p.baseToken?.symbol||'').toUpperCase();
+        const chain=(p.chainId||'').toLowerCase();
+        return(sym==='MON'||sym==='WMON')&&chain.includes('monad');
+      });
+      if(!pairs.length)throw new Error('no MON pairs on monad chain');
       pairs.sort((a,b)=>(b.volume?.h24||0)-(a.volume?.h24||0));
       const top=pairs[0];
       const p=parseFloat(top.priceUsd),c=parseFloat(top.priceChange?.h24)||0;
-      if(!(p>0))throw new Error('no price');
+      if(!(p>0))throw new Error('zero price');
       return{p,c};
     }
   },
   {
-    name:'coincap',
+    name:'geckoterminal',
     fetch:async()=>{
-      const d=await simpleFetch('https://api.coincap.io/v2/assets/monad');
-      const p=parseFloat(d.data?.priceUsd),c=parseFloat(d.data?.changePercent24Hr)||0;
-      if(!(p>0))throw new Error('no price');
+      const d=await simpleFetch('https://api.geckoterminal.com/api/v2/search/pools?query=monad&network=monad-mainnet');
+      const pools=(d.data||[]).filter(p=>{
+        const name=(p.attributes?.name||'').toUpperCase();
+        return name.includes('MON /')||name.startsWith('MON/')||name.includes('WMON');
+      });
+      if(!pools.length)throw new Error('no MON pools');
+      pools.sort((a,b)=>(parseFloat(b.attributes?.volume_usd?.h24)||0)-(parseFloat(a.attributes?.volume_usd?.h24)||0));
+      const top=pools[0];
+      const p=parseFloat(top.attributes?.base_token_price_usd);
+      const c=parseFloat(top.attributes?.price_change_percentage?.h24)||0;
+      if(!(p>0))throw new Error('zero price');
       return{p,c};
     }
   },
@@ -638,15 +650,21 @@ const PRICE_SOURCES=[
 
 async function fetchPrice(){
   const ts=document.getElementById('vPT');
+  const errors=[];
   for(const src of PRICE_SOURCES){
     try{
       const{p,c}=await src.fetch();
       S.price=p;S.priceChg=c;
       try{localStorage.setItem('mon_price_cache',JSON.stringify({price:p,chg:c,time:Date.now(),source:src.name}))}catch(e){}
       ts.textContent='updated '+new Date().toLocaleTimeString()+' · '+src.name;
+      console.log('[price] ✓ '+src.name+' · $'+p);
       calcChange30d();render();return;
-    }catch(e){}
+    }catch(e){
+      errors.push(src.name+': '+e.message);
+      console.warn('[price] ✗ '+src.name+' — '+e.message);
+    }
   }
+  console.error('[price] all sources failed:',errors);
   try{
     const cached=JSON.parse(localStorage.getItem('mon_price_cache')||'null');
     if(cached&&cached.price>0){
@@ -662,20 +680,45 @@ async function fetchPrice(){
 }
 
 let histPrices=null;
+let monPoolCache=null;
+
+async function findMONPool(){
+  if(monPoolCache)return monPoolCache;
+  const ds=await simpleFetch('https://api.dexscreener.com/latest/dex/search?q=monad');
+  const pairs=(ds.pairs||[]).filter(p=>{
+    const sym=(p.baseToken?.symbol||'').toUpperCase();
+    const chain=(p.chainId||'').toLowerCase();
+    return(sym==='MON'||sym==='WMON')&&chain.includes('monad');
+  });
+  if(!pairs.length)throw new Error('no MON pair');
+  pairs.sort((a,b)=>(b.volume?.h24||0)-(a.volume?.h24||0));
+  monPoolCache=pairs[0];
+  return monPoolCache;
+}
+
+async function gtOHLCV(poolAddr,timeframe,limit){
+  for(const net of ['monad-mainnet','monad']){
+    try{
+      const d=await simpleFetch(`https://api.geckoterminal.com/api/v2/networks/${net}/pools/${poolAddr}/ohlcv/${timeframe}?limit=${limit}&currency=usd`);
+      const list=d.data?.attributes?.ohlcv_list||[];
+      if(list.length)return list.map(x=>[x[0]*1000,x[4]]).filter(x=>x[1]>0).reverse();
+    }catch(e){}
+  }
+  throw new Error('GT all networks failed');
+}
 
 const HIST_SOURCES=[
   {
-    name:'coincap',
+    name:'geckoterminal',
     fetch:async()=>{
-      const end=Date.now(),start=end-365*86400000;
-      const d=await simpleFetch(`https://api.coincap.io/v2/assets/monad/history?interval=d1&start=${start}&end=${end}`);
-      return(d.data||[]).map(x=>[x.time,parseFloat(x.priceUsd)]).filter(x=>x[1]>0);
+      const pool=await findMONPool();
+      return gtOHLCV(pool.pairAddress,'day',365);
     }
   },
   {
     name:'coingecko',
     fetch:async()=>{
-      const d=await smartFetch('https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=max');
+      const d=await smartFetch('https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=365&interval=daily');
       return d.prices||[];
     }
   }
@@ -734,24 +777,22 @@ async function loadChart(days){
   document.querySelectorAll('.chart-tab').forEach(b=>b.classList.toggle('on',b.dataset.range===String(days)));
   const svg=document.getElementById('priceChart');
   svg.innerHTML='<text x="400" y="90" text-anchor="middle" fill="#5c5878" font-family="IBM Plex Mono" font-size="11">loading…</text>';
+  const cgDays=days==='max'?365:days;
+  const isMax=days==='max';
+  const tf=isMax||days>=90?'day':days>=2?'hour':'minute';
+  const lim=isMax?365:days;
   try{
-    const d=await smartFetch(`https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=${days}`);
+    const pool=await findMONPool();
+    const data=await gtOHLCV(pool.pairAddress,tf,lim);
+    if(data.length){chartData=data;renderChart();return}
+  }catch(e){}
+  try{
+    const d=await smartFetch(`https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=${cgDays}`);
     chartData=d.prices||[];
     if(chartData.length){renderChart();return}
   }catch(e){}
-  try{
-    const end=Date.now();
-    let start,interval;
-    if(days==='max'){start=end-365*86400000;interval='d1'}
-    else if(days>=90){start=end-days*86400000;interval='d1'}
-    else if(days>=30){start=end-days*86400000;interval='h6'}
-    else{start=end-days*86400000;interval='h1'}
-    const d=await simpleFetch(`https://api.coincap.io/v2/assets/monad/history?interval=${interval}&start=${start}&end=${end}`);
-    chartData=(d.data||[]).map(x=>[x.time,parseFloat(x.priceUsd)]).filter(x=>x[1]>0);
-    if(chartData.length){renderChart();return}
-  }catch(e){}
   if(histPrices&&histPrices.length){
-    const cutoff=days==='max'?0:Date.now()-days*86400000;
+    const cutoff=isMax?0:Date.now()-days*86400000;
     chartData=histPrices.filter(p=>p[0]>=cutoff);
     if(chartData.length){renderChart();return}
   }
