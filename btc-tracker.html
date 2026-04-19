@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#06060e">
 <title>BTC Wallet Tracker — Stack Tracker</title>
-<link rel="manifest" href='data:application/manifest+json,{"name":"BTC Wallet Tracker","short_name":"BTC Stack","start_url":".","display":"standalone","background_color":"%2306060e","theme_color":"%23f7931a","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 192 192%22><rect width=%22192%22 height=%22192%22 rx=%2240%22 fill=%22%23f7931a%22/><text x=%2296%22 y=%22134%22 font-family=%22monospace%22 font-size=%22110%22 font-weight=%22700%22 fill=%22white%22 text-anchor=%22middle%22>₿</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23f7931a%22/><text x=%2250%22 y=%2270%22 font-family=%22monospace%22 font-size=%2260%22 font-weight=%22700%22 fill=%22white%22 text-anchor=%22middle%22>₿</text></svg>'>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -164,6 +163,39 @@ input::placeholder{color:var(--text4)}
 .ac.on .al{color:var(--text)}
 .ack{position:absolute;top:-5px;right:-5px;width:18px;height:18px;background:var(--amber);border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--bg);box-shadow:0 2px 8px var(--amber-glow)}
 
+/* Purchase History */
+.purchase-item{display:flex;flex-direction:column;gap:3px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;font-size:11px;color:var(--text2)}
+.p-row-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.p-row-pnl{display:flex;align-items:center;gap:6px;font-size:10px;padding-left:2px;flex-wrap:wrap;padding-top:2px}
+.purchase-item .p-amt{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--btc-soft);min-width:90px;font-size:12px}
+.purchase-item .p-date{color:var(--text4);font-family:'IBM Plex Mono',monospace;font-size:10px}
+.purchase-item .p-note{color:var(--text3);flex:1;font-style:italic;font-size:10px}
+.purchase-item .p-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;font-weight:700;padding:2px 6px;opacity:.5;transition:opacity .2s}
+.purchase-item .p-btn:hover{opacity:1}
+.purchase-item .p-btn.p-del:hover{color:var(--red)}
+.purchase-item .p-btn.p-edit:hover{color:var(--cyan)}
+.p-basis{color:var(--text4);font-family:'IBM Plex Mono',monospace}
+.p-sep{color:var(--text4)}
+.p-pnl{font-family:'IBM Plex Mono',monospace;font-weight:600}
+.p-pnl.up{color:var(--green)}
+.p-pnl.down{color:var(--red)}
+.pt-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text3)}
+.pt-row > span:first-child{color:var(--text4)}
+.pt-row > span:last-child{font-family:'IBM Plex Mono',monospace;color:var(--btc-soft);font-weight:600}
+.pt-pnl-row{padding-top:6px;border-top:1px solid var(--border);margin-top:4px}
+.pt-pnl-row > span:last-child{font-weight:700}
+.purchase-form{background:var(--bg2);border:1px dashed var(--text4);border-radius:var(--r-sm);padding:14px;margin-bottom:10px}
+.purchase-form.open{border-color:var(--btc);border-style:solid}
+.pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:500px){.pf-grid{grid-template-columns:1fr}}
+.pf-field label{font-size:10px;color:var(--text4);font-weight:700;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px}
+.pf-field input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-xs);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px 10px;outline:none;transition:border-color .2s}
+.pf-field input[type="text"].label-input{font-family:'Syne',sans-serif}
+.pf-field input:focus{border-color:var(--btc);box-shadow:0 0 0 3px var(--btc-glow)}
+.pf-price-hint{font-size:9px;color:var(--text4);margin-top:3px;font-family:'IBM Plex Mono',monospace}
+.pf-price-hint a{color:var(--btc-soft);cursor:pointer;text-decoration:underline}
+.pf-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:10px}
+
 /* Modal */
 .mbg{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.65);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .mbg.open{display:flex}
@@ -277,6 +309,47 @@ input::placeholder{color:var(--text4)}
   </div>
 
   <div class="g st" style="margin-bottom:14px">
+    <div class="g-t">
+      <span>📦 Purchase History</span>
+      <button class="refresh-btn" onclick="showAddPurchase()">+ Add Purchase</button>
+    </div>
+    <div class="purchase-form" id="purchaseForm" style="display:none">
+      <div class="pf-grid">
+        <div class="pf-field">
+          <label>BTC Amount</label>
+          <input type="number" id="pAmt" placeholder="0.001" min="0" step="any">
+        </div>
+        <div class="pf-field">
+          <label>Price per BTC (USD)</label>
+          <input type="number" id="pPrice" placeholder="70000" min="0" step="any">
+          <div class="pf-price-hint">Spot now: <a onclick="fillCurrentPrice()" id="pPriceHint">—</a></div>
+        </div>
+        <div class="pf-field">
+          <label>Date</label>
+          <input type="datetime-local" id="pDate">
+        </div>
+        <div class="pf-field">
+          <label>Note (optional)</label>
+          <input type="text" id="pNote" class="label-input" placeholder="e.g. DCA, Coinbase">
+        </div>
+      </div>
+      <div class="pf-actions">
+        <button class="btn bs bo" onclick="hideAddPurchase()">Cancel</button>
+        <button class="btn bs bp" id="pSaveBtn" onclick="savePurchase()">Add Purchase</button>
+      </div>
+    </div>
+    <div id="purchaseList" style="display:flex;flex-direction:column;gap:6px"></div>
+    <div id="purchaseEmpty" style="text-align:center;color:var(--text4);font-size:12px;padding:20px 10px;line-height:1.6">No purchases logged yet.<br>Track what you paid to see your real P/L.</div>
+    <div id="purchaseTotal" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);flex-direction:column;gap:5px">
+      <div class="pt-row"><span>Total BTC Purchased</span><span id="ptTotalBtc">—</span></div>
+      <div class="pt-row"><span>Total Cost Basis</span><span id="ptTotalBasis">—</span></div>
+      <div class="pt-row"><span>Current Value</span><span id="ptTotalCur">—</span></div>
+      <div class="pt-row"><span>Avg Entry Price</span><span id="ptAvgEntry">—</span></div>
+      <div class="pt-row pt-pnl-row"><span>Total P/L</span><span id="ptTotalPnl">—</span></div>
+    </div>
+  </div>
+
+  <div class="g st" style="margin-bottom:14px">
     <div class="g-t">Stacking Goals</div>
     <div class="gw" id="gW"></div>
     <button class="wadd-btn" onclick="addGoal()">+ Add Goal</button>
@@ -311,11 +384,11 @@ input::placeholder{color:var(--text4)}
 
 <script>
 const KEY='btc_stack_v1';
-let S={wallets:[],goals:[],unlocked:[],price:0,priceChg30:0,priceThen:0};
+let S={wallets:[],purchases:[],goals:[],unlocked:[],price:0,priceChg30:0,priceThen:0};
 let chartData=null,chartRange=30;
 
-function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);Object.assign(S,d);if(!S.wallets)S.wallets=[];if(!S.goals)S.goals=[];if(!S.unlocked)S.unlocked=[]}}catch(e){}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({wallets:S.wallets,goals:S.goals,unlocked:S.unlocked}))}catch(e){}}
+function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);Object.assign(S,d);if(!S.wallets)S.wallets=[];if(!S.purchases)S.purchases=[];if(!S.goals)S.goals=[];if(!S.unlocked)S.unlocked=[]}}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({wallets:S.wallets,purchases:S.purchases,goals:S.goals,unlocked:S.unlocked}))}catch(e){}}
 
 function validAddr(a){
   if(!a)return false;
@@ -519,6 +592,123 @@ function renderWallets(){
   }).join('');
 }
 
+/* ── Purchases ── */
+function toLocalISO(d){
+  const pad=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+
+let editingPurchaseId=null;
+
+function fillCurrentPrice(){
+  if(S.price>0){document.getElementById('pPrice').value=S.price.toFixed(2)}
+}
+
+function showAddPurchase(){
+  editingPurchaseId=null;
+  document.getElementById('pSaveBtn').textContent='Add Purchase';
+  const f=document.getElementById('purchaseForm');
+  f.style.display='block';f.classList.add('open');
+  document.getElementById('pAmt').value='';
+  document.getElementById('pPrice').value=S.price>0?S.price.toFixed(2):'';
+  document.getElementById('pDate').value=toLocalISO(new Date());
+  document.getElementById('pNote').value='';
+  document.getElementById('pPriceHint').textContent=S.price>0?'$'+S.price.toLocaleString(undefined,{maximumFractionDigits:2})+' (click to use)':'—';
+  setTimeout(()=>document.getElementById('pAmt').focus(),50);
+}
+
+function hideAddPurchase(){
+  document.getElementById('purchaseForm').style.display='none';
+  editingPurchaseId=null;
+}
+
+function editPurchase(id){
+  const p=S.purchases.find(x=>x.id===id);if(!p)return;
+  editingPurchaseId=id;
+  document.getElementById('pSaveBtn').textContent='Update';
+  const f=document.getElementById('purchaseForm');
+  f.style.display='block';f.classList.add('open');
+  document.getElementById('pAmt').value=p.amt;
+  document.getElementById('pPrice').value=p.price;
+  document.getElementById('pDate').value=p.date;
+  document.getElementById('pNote').value=p.note||'';
+  document.getElementById('pPriceHint').textContent=S.price>0?'$'+S.price.toLocaleString(undefined,{maximumFractionDigits:2})+' (click to use)':'—';
+  setTimeout(()=>document.getElementById('pAmt').focus(),50);
+}
+
+function savePurchase(){
+  const amt=parseFloat(document.getElementById('pAmt').value)||0;
+  const price=parseFloat(document.getElementById('pPrice').value)||0;
+  if(amt<=0){queueToast('⚠️','Enter a valid BTC amount');return}
+  if(price<=0){queueToast('⚠️','Enter a valid price per BTC');return}
+  let dateVal=document.getElementById('pDate').value;
+  if(!dateVal)dateVal=toLocalISO(new Date());
+  const note=document.getElementById('pNote').value.trim();
+  if(editingPurchaseId!==null){
+    const p=S.purchases.find(x=>x.id===editingPurchaseId);
+    if(p){p.amt=amt;p.price=price;p.date=dateVal;p.note=note||'Purchase'}
+    queueToast('✏️','Purchase updated');
+  }else{
+    S.purchases.push({id:Date.now(),amt,price,date:dateVal,note:note||'Purchase'});
+    queueToast('📦','Logged '+amt.toFixed(8)+' BTC @ '+fU(price));
+  }
+  S.purchases.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  save();hideAddPurchase();renderPurchases();render();
+}
+
+function delPurchase(id){
+  if(!confirm('Remove this purchase?'))return;
+  S.purchases=S.purchases.filter(p=>p.id!==id);
+  save();renderPurchases();render();
+}
+
+function renderPurchases(){
+  const list=document.getElementById('purchaseList');
+  const empty=document.getElementById('purchaseEmpty');
+  const totalEl=document.getElementById('purchaseTotal');
+  if(!S.purchases||!S.purchases.length){
+    list.innerHTML='';empty.style.display='block';totalEl.style.display='none';return;
+  }
+  empty.style.display='none';totalEl.style.display='flex';
+  const cur=S.price;
+  let totalBtc=0,totalBasis=0,totalCur=0;
+  list.innerHTML=S.purchases.map(p=>{
+    const d=new Date(p.date);
+    const ds=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'})+' '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    const basisValue=p.amt*p.price;
+    const curValue=cur>0?p.amt*cur:0;
+    totalBtc+=p.amt;totalBasis+=basisValue;totalCur+=curValue;
+    let pnlHTML;
+    if(cur<=0){
+      pnlHTML=`<span class="p-basis">@ ${fU(p.price)} = ${fU(basisValue)} cost</span>`;
+    }else{
+      const pnl=curValue-basisValue;
+      const pct=basisValue>0?(pnl/basisValue*100):0;
+      const cls=pnl>=0?'up':'down';
+      const arrow=pnl>=0?'↑':'↓';
+      const sign=pnl>=0?'+':'';
+      pnlHTML=`<span class="p-basis">@ ${fU(p.price)} · ${fU(basisValue)} → ${fU(curValue)}</span><span class="p-sep">·</span><span class="p-pnl ${cls}">${sign}${fU(Math.abs(pnl))} (${sign}${pct.toFixed(1)}%) ${arrow}</span>`;
+    }
+    const btcLabel=p.amt>=0.01?p.amt.toFixed(4)+' BTC':Math.round(p.amt*1e8).toLocaleString()+' sats';
+    return`<div class="purchase-item"><div class="p-row-main"><span class="p-amt">${btcLabel}</span><span class="p-date">${ds}</span><span class="p-note">${p.note||''}</span><button class="p-btn p-edit" onclick="editPurchase(${p.id})" title="Edit">✎</button><button class="p-btn p-del" onclick="delPurchase(${p.id})" title="Remove">✕</button></div><div class="p-row-pnl">${pnlHTML}</div></div>`;
+  }).join('');
+  document.getElementById('ptTotalBtc').textContent=totalBtc.toFixed(8)+' BTC';
+  document.getElementById('ptTotalBasis').textContent=fU(totalBasis);
+  const avgEntry=totalBtc>0?totalBasis/totalBtc:0;
+  document.getElementById('ptAvgEntry').textContent=fU(avgEntry)+' / BTC';
+  if(cur>0){
+    document.getElementById('ptTotalCur').textContent=fU(totalCur);
+    const pnl=totalCur-totalBasis,pct=totalBasis>0?(pnl/totalBasis*100):0;
+    const sign=pnl>=0?'+':'',arrow=pnl>=0?'↑':'↓';
+    const pnlEl=document.getElementById('ptTotalPnl');
+    pnlEl.textContent=`${sign}${fU(Math.abs(pnl))} (${sign}${pct.toFixed(2)}%) ${arrow}`;
+    pnlEl.style.color=pnl>=0?'var(--green)':'var(--red)';
+  }else{
+    document.getElementById('ptTotalCur').textContent='loading…';
+    document.getElementById('ptTotalPnl').textContent='—';
+  }
+}
+
 /* ── Goals ── */
 let eI=null;
 function addGoal(){S.goals.push({id:Date.now().toString(36),name:'Stack to '+(S.goals.length+1)+' BTC',target:1});save();render()}
@@ -625,13 +815,14 @@ function render(){
     document.getElementById('vCS').textContent='waiting on 30d data';
   }
   renderGoals(btc);
+  renderPurchases();
   if(Math.abs(sats-lastAchSats)>Math.max(1000,lastAchSats*0.0005)){renderAch(sats);lastAchSats=sats}
   checkAch(sats);
 }
 
 /* ── Export/Import/Reset ── */
 function exportData(){
-  const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),data:{wallets:S.wallets,goals:S.goals,unlocked:S.unlocked}},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),data:{wallets:S.wallets,purchases:S.purchases,goals:S.goals,unlocked:S.unlocked}},null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;a.download='btc-stack-'+new Date().toISOString().slice(0,10)+'.json';
@@ -647,6 +838,7 @@ function importData(ev){
       const src=d.data||d;
       if(!confirm('Import will overwrite current data. Continue?')){ev.target.value='';return}
       if(src.wallets)S.wallets=src.wallets.map(w=>({...w,loading:false,error:null}));
+      if(src.purchases)S.purchases=src.purchases;
       if(src.goals)S.goals=src.goals;
       if(src.unlocked)S.unlocked=src.unlocked;
       save();render();renderWallets();
@@ -661,7 +853,7 @@ function importData(ev){
 function resetAll(){
   if(!confirm('Clear all saved data? This cannot be undone.'))return;
   localStorage.removeItem(KEY);
-  S={wallets:[],goals:[],unlocked:[],price:S.price,priceChg30:S.priceChg30,priceThen:S.priceThen};
+  S={wallets:[],purchases:[],goals:[],unlocked:[],price:S.price,priceChg30:S.priceChg30,priceThen:S.priceThen};
   lastAchSats=0;
   renderWallets();render();
 }
