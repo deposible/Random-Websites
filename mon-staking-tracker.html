@@ -574,18 +574,11 @@ function toLocalISO(d){
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
 }
 
-const APIS=[
-  {url:'https://api.coingecko.com/api/v3/simple/price?ids=monad&vs_currencies=usd&include_24hr_change=true',
-   get:d=>({p:d.monad?.usd||0,c:d.monad?.usd_24h_change||0})},
-  {url:'https://api.coingecko.com/api/v3/coins/monad?localization=false&tickers=false&community_data=false&developer_data=false',
-   get:d=>({p:d.market_data?.current_price?.usd||0,c:d.market_data?.price_change_percentage_24h||0})},
-];
-let aI=0;
-
 const PROXIES=[
   u=>u,
   u=>'https://corsproxy.io/?'+encodeURIComponent(u),
   u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
+  u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u),
 ];
 
 async function smartFetch(url,timeout=15000){
@@ -598,43 +591,126 @@ async function smartFetch(url,timeout=15000){
       return await r.json();
     }catch(e){}
   }
-  throw new Error('all fetch attempts failed');
+  throw new Error('all proxy attempts failed');
 }
+
+async function simpleFetch(url,timeout=15000){
+  const ac=new AbortController(),t=setTimeout(()=>ac.abort(),timeout);
+  const r=await fetch(url,{signal:ac.signal,cache:'no-store',headers:{Accept:'application/json'}});
+  clearTimeout(t);
+  if(!r.ok)throw new Error('status '+r.status);
+  return r.json();
+}
+
+const PRICE_SOURCES=[
+  {
+    name:'dexscreener',
+    fetch:async()=>{
+      const d=await simpleFetch('https://api.dexscreener.com/latest/dex/search?q=MON');
+      const pairs=(d.pairs||[]).filter(p=>p.baseToken?.symbol==='MON'&&p.chainId==='monad');
+      if(!pairs.length)throw new Error('no pairs');
+      pairs.sort((a,b)=>(b.volume?.h24||0)-(a.volume?.h24||0));
+      const top=pairs[0];
+      const p=parseFloat(top.priceUsd),c=parseFloat(top.priceChange?.h24)||0;
+      if(!(p>0))throw new Error('no price');
+      return{p,c};
+    }
+  },
+  {
+    name:'coincap',
+    fetch:async()=>{
+      const d=await simpleFetch('https://api.coincap.io/v2/assets/monad');
+      const p=parseFloat(d.data?.priceUsd),c=parseFloat(d.data?.changePercent24Hr)||0;
+      if(!(p>0))throw new Error('no price');
+      return{p,c};
+    }
+  },
+  {
+    name:'coingecko',
+    fetch:async()=>{
+      const d=await smartFetch('https://api.coingecko.com/api/v3/simple/price?ids=monad&vs_currencies=usd&include_24hr_change=true');
+      const p=d.monad?.usd||0;
+      if(!(p>0))throw new Error('no price');
+      return{p,c:d.monad.usd_24h_change||0};
+    }
+  }
+];
 
 async function fetchPrice(){
   const ts=document.getElementById('vPT');
-  for(let i=0;i<APIS.length;i++){
-    const api=APIS[(aI+i)%APIS.length];
+  for(const src of PRICE_SOURCES){
     try{
-      const d=await smartFetch(api.url);
-      const{p,c}=api.get(d);
-      if(p>0){S.price=p;S.priceChg=c;aI=(aI+i)%APIS.length;
-        ts.textContent='updated '+new Date().toLocaleTimeString();render();return}
+      const{p,c}=await src.fetch();
+      S.price=p;S.priceChg=c;
+      try{localStorage.setItem('mon_price_cache',JSON.stringify({price:p,chg:c,time:Date.now(),source:src.name}))}catch(e){}
+      ts.textContent='updated '+new Date().toLocaleTimeString()+' · '+src.name;
+      calcChange30d();render();return;
     }catch(e){}
   }
-  if(S.price<=0){S.price=0.027;ts.textContent='fallback ~$0.027'}
-  else ts.textContent='cached · retrying';
+  try{
+    const cached=JSON.parse(localStorage.getItem('mon_price_cache')||'null');
+    if(cached&&cached.price>0){
+      S.price=cached.price;S.priceChg=cached.chg||0;
+      const mins=Math.round((Date.now()-cached.time)/60000);
+      ts.textContent=`cached ${mins}m ago · ${cached.source}`;
+      calcChange30d();render();return;
+    }
+  }catch(e){}
+  if(S.price<=0){S.price=0.027;ts.textContent='all sources down · fallback'}
+  else ts.textContent='retrying…';
   render();
 }
 
-async function fetchChange30d(){
-  try{
-    const d=await smartFetch('https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=30&interval=daily');
-    const prices=d.prices||[];
-    if(prices.length>=2){
-      const first=prices[0][1],last=prices[prices.length-1][1];
-      if(first>0){S.priceChg30=(last-first)/first*100;render()}
-    }
-  }catch(e){}
-}
-
 let histPrices=null;
+
+const HIST_SOURCES=[
+  {
+    name:'coincap',
+    fetch:async()=>{
+      const end=Date.now(),start=end-365*86400000;
+      const d=await simpleFetch(`https://api.coincap.io/v2/assets/monad/history?interval=d1&start=${start}&end=${end}`);
+      return(d.data||[]).map(x=>[x.time,parseFloat(x.priceUsd)]).filter(x=>x[1]>0);
+    }
+  },
+  {
+    name:'coingecko',
+    fetch:async()=>{
+      const d=await smartFetch('https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=max');
+      return d.prices||[];
+    }
+  }
+];
+
 async function fetchHistoricalPrices(){
   try{
-    const d=await smartFetch('https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=max');
-    histPrices=d.prices||[];
-    renderPurchases();
+    const cached=JSON.parse(localStorage.getItem('mon_hist_cache')||'null');
+    if(cached&&cached.data&&cached.data.length){
+      histPrices=cached.data;renderPurchases();calcChange30d();render();
+      if((Date.now()-cached.time)<86400000)return;
+    }
   }catch(e){}
+  for(const src of HIST_SOURCES){
+    try{
+      const data=await src.fetch();
+      if(data.length){
+        histPrices=data;
+        try{localStorage.setItem('mon_hist_cache',JSON.stringify({data,time:Date.now(),source:src.name}))}catch(e){}
+        renderPurchases();calcChange30d();render();return;
+      }
+    }catch(e){}
+  }
+}
+
+function calcChange30d(){
+  if(!histPrices||!histPrices.length||S.price<=0){return}
+  const target=Date.now()-30*86400000;
+  let closest=histPrices[0],minDiff=Math.abs(target-closest[0]);
+  for(const p of histPrices){
+    const diff=Math.abs(target-p[0]);
+    if(diff<minDiff){minDiff=diff;closest=p}
+  }
+  const priceThen=closest[1];
+  if(priceThen>0)S.priceChg30=((S.price-priceThen)/priceThen)*100;
 }
 
 function priceOnDate(dateMs){
@@ -661,10 +737,25 @@ async function loadChart(days){
   try{
     const d=await smartFetch(`https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=${days}`);
     chartData=d.prices||[];
-    renderChart();
-  }catch(e){
-    svg.innerHTML='<text x="400" y="90" text-anchor="middle" fill="#ff5c6c" font-family="IBM Plex Mono" font-size="11">chart unavailable</text>';
+    if(chartData.length){renderChart();return}
+  }catch(e){}
+  try{
+    const end=Date.now();
+    let start,interval;
+    if(days==='max'){start=end-365*86400000;interval='d1'}
+    else if(days>=90){start=end-days*86400000;interval='d1'}
+    else if(days>=30){start=end-days*86400000;interval='h6'}
+    else{start=end-days*86400000;interval='h1'}
+    const d=await simpleFetch(`https://api.coincap.io/v2/assets/monad/history?interval=${interval}&start=${start}&end=${end}`);
+    chartData=(d.data||[]).map(x=>[x.time,parseFloat(x.priceUsd)]).filter(x=>x[1]>0);
+    if(chartData.length){renderChart();return}
+  }catch(e){}
+  if(histPrices&&histPrices.length){
+    const cutoff=days==='max'?0:Date.now()-days*86400000;
+    chartData=histPrices.filter(p=>p[0]>=cutoff);
+    if(chartData.length){renderChart();return}
   }
+  svg.innerHTML='<text x="400" y="90" text-anchor="middle" fill="#ff5c6c" font-family="IBM Plex Mono" font-size="11">chart unavailable</text>';
 }
 
 function renderChart(){
@@ -1113,7 +1204,7 @@ document.addEventListener('visibilitychange',()=>{
   document.body.classList.toggle('hidden',document.hidden);
 });
 
-load();render();fetchPrice();setInterval(fetchPrice,60000);fetchChange30d();setInterval(fetchChange30d,3600000);fetchHistoricalPrices();setInterval(fetchHistoricalPrices,3600000);startLiveTicker();loadChart(30);
+load();render();fetchHistoricalPrices();setInterval(fetchHistoricalPrices,3600000);fetchPrice();setInterval(fetchPrice,60000);startLiveTicker();loadChart(30);
 </script>
 </body>
 </html>
