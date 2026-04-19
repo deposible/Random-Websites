@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#06060e">
+<title>BTC Wallet Tracker — Stack Tracker</title>
+<link rel="manifest" href='data:application/manifest+json,{"name":"BTC Wallet Tracker","short_name":"BTC Stack","start_url":".","display":"standalone","background_color":"%2306060e","theme_color":"%23f7931a","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 192 192%22><rect width=%22192%22 height=%22192%22 rx=%2240%22 fill=%22%23f7931a%22/><text x=%2296%22 y=%22134%22 font-family=%22monospace%22 font-size=%22110%22 font-weight=%22700%22 fill=%22white%22 text-anchor=%22middle%22>₿</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23f7931a%22/><text x=%2250%22 y=%2270%22 font-family=%22monospace%22 font-size=%2260%22 font-weight=%22700%22 fill=%22white%22 text-anchor=%22middle%22>₿</text></svg>'>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#06060e;--bg2:#0e0e1c;--bg3:#141428;--bg4:#1c1c36;
+  --glass:rgba(14,14,30,.72);--glass2:rgba(20,20,42,.6);
+  --btc:#f7931a;--btc-soft:#ffb04a;--btc-deep:#c47312;
+  --btc-glow:rgba(247,147,26,.2);--btc-glow-s:rgba(247,147,26,.35);
+  --cyan:#42e8d5;--green:#3ddc84;--amber:#f5b731;--amber-glow:rgba(245,183,49,.12);
+  --red:#ff5c6c;--text:#eae8f4;--text2:#a09cb8;--text3:#5c5878;--text4:#3a3658;
+  --border:rgba(247,147,26,.12);--border2:rgba(247,147,26,.22);
+  --r:14px;--r-sm:10px;--r-xs:6px;
+}
+html{font-size:16px}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.bg-grid{
+  position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(247,147,26,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(247,147,26,.03) 1px,transparent 1px);
+  background-size:64px 64px;mask-image:radial-gradient(ellipse 70% 60% at 50% 30%,black,transparent);
+}
+.bg-orb{position:fixed;border-radius:50%;filter:blur(100px);z-index:0;pointer-events:none;animation:orbF 20s ease-in-out infinite alternate;will-change:transform}
+.bg-orb.a{width:500px;height:500px;top:-10%;left:-5%;background:rgba(247,147,26,.08)}
+.bg-orb.b{width:400px;height:400px;bottom:-10%;right:-5%;background:rgba(245,183,49,.05);animation-delay:-10s}
+body.hidden .bg-orb{animation-play-state:paused}
+@keyframes orbF{0%{transform:translate(0,0)}100%{transform:translate(40px,30px)}}
+.app{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:24px 20px 100px}
+
+.header{display:flex;align-items:center;justify-content:space-between;padding:20px 0 28px;flex-wrap:wrap;gap:12px;animation:fs .6s ease both}
+@keyframes fs{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-mark{
+  width:46px;height:46px;border-radius:13px;
+  background:linear-gradient(135deg,var(--btc),var(--btc-deep));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 28px var(--btc-glow-s),inset 0 1px 0 rgba(255,255,255,.15);
+}
+.logo-mark span{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:24px;color:#fff}
+.logo-title{font-weight:800;font-size:21px;letter-spacing:-.4px;line-height:1.1}
+.logo-title small{display:block;font-weight:400;font-size:11px;color:var(--text3);letter-spacing:.5px;margin-top:2px}
+.header-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.live-pill{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--green);background:rgba(61,220,132,.08);padding:6px 14px;border-radius:20px;border:1px solid rgba(61,220,132,.15);letter-spacing:.5px;text-transform:uppercase}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.hbtn{background:none;border:1px solid var(--border);color:var(--text3);padding:6px 12px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:500;transition:all .2s}
+.hbtn:hover{border-color:var(--btc);color:var(--text)}
+.hbtn.danger:hover{border-color:var(--red);color:var(--red)}
+
+.g{background:var(--glass);border:1px solid var(--border);border-radius:var(--r);padding:22px;position:relative;overflow:hidden;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:border-color .3s,box-shadow .3s}
+.g:hover{border-color:var(--border2);box-shadow:0 4px 30px rgba(0,0,0,.15)}
+.g::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 10%,rgba(247,147,26,.25) 50%,transparent 90%)}
+.g-t{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--text3);font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+.st{animation:fs .5s ease both}
+.st:nth-child(1){animation-delay:.05s}.st:nth-child(2){animation-delay:.1s}
+.st:nth-child(3){animation-delay:.15s}.st:nth-child(4){animation-delay:.2s}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:700px){.stats{grid-template-columns:1fr 1fr}}
+.stat{text-align:center;padding:18px 10px}
+.sv{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:700;margin:5px 0 3px;line-height:1;word-break:break-word}
+.sv.cp{color:var(--btc-soft)}.sv.ca{color:var(--green)}.sv.cpo{color:var(--btc)}.sv.ce{color:var(--amber)}
+.ss{font-size:11px;color:var(--text2);font-weight:400}
+.sb{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;margin-top:4px}
+.sb.up{color:var(--green);background:rgba(61,220,132,.1)}
+.sb.down{color:var(--red);background:rgba(255,92,108,.1)}
+.sb.ne{color:var(--text3);background:rgba(92,88,120,.15)}
+.pts{font-size:9px;color:var(--text4);margin-top:3px}
+
+/* Chart */
+.chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px}
+.chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.chart-tabs{display:flex;gap:4px}
+.chart-tab{background:var(--bg);border:1px solid var(--border);color:var(--text3);padding:4px 10px;border-radius:var(--r-xs);font-size:10px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.5px;transition:all .2s}
+.chart-tab:hover{color:var(--text)}
+.chart-tab.on{background:var(--btc-deep);border-color:var(--btc);color:var(--text)}
+.chart-svg{width:100%;height:180px;display:block}
+.chart-info{display:flex;justify-content:space-between;font-size:10px;color:var(--text4);margin-top:8px}
+
+/* Wallets */
+.wlist{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.wi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;transition:border-color .2s}
+.wi:hover{border-color:var(--border2)}
+.wi.err{border-color:rgba(255,92,108,.3);background:rgba(255,92,108,.04)}
+.wt{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px}
+.wn{font-weight:700;font-size:14px;cursor:pointer;padding:2px 6px;border:1px solid transparent;border-radius:var(--r-xs);transition:border-color .2s}
+.wn:hover{border-color:var(--text4)}
+.wb{display:flex;gap:4px;flex-shrink:0}
+.waddr{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);word-break:break-all;margin-bottom:10px;line-height:1.4}
+.wbal{display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--border)}
+.wbal-btc{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;color:var(--btc-soft)}
+.wbal-usd{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text3)}
+.wbal-status{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text4);font-weight:700;margin-top:4px}
+.wbal-status.loading{color:var(--btc)}
+.wbal-status.ok{color:var(--green)}
+.wbal-status.err{color:var(--red)}
+.spin{display:inline-block;width:10px;height:10px;border:1.5px solid var(--btc);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:4px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.wform{background:var(--bg2);border:1px dashed var(--text4);border-radius:var(--r-sm);padding:14px;margin-top:10px}
+.wform.open{border-color:var(--btc);border-style:solid}
+.wform-fields{display:flex;flex-direction:column;gap:8px}
+input[type="number"],input[type="text"]{
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:11px 14px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;
+  outline:none;transition:border-color .25s,box-shadow .25s;width:100%;
+}
+input[type="text"].label-input{font-family:'Syne',sans-serif}
+input:focus{border-color:var(--btc);box-shadow:0 0 0 3px var(--btc-glow)}
+input::placeholder{color:var(--text4)}
+.wform-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:4px}
+
+.btn{padding:11px 20px;border:none;border-radius:var(--r-sm);cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;letter-spacing:.3px;transition:all .2s;white-space:nowrap}
+.bp{background:linear-gradient(135deg,var(--btc),var(--btc-deep));color:#fff;box-shadow:0 2px 16px var(--btc-glow)}
+.bp:hover{transform:translateY(-1px);box-shadow:0 6px 24px var(--btc-glow-s)}
+.bs{padding:7px 12px;font-size:10px;border-radius:var(--r-xs)}
+.bo{background:transparent;border:1px solid var(--border);color:var(--text2)}
+.bo:hover{border-color:var(--btc);color:var(--text)}
+.bd{background:rgba(255,92,108,.08);border:1px solid rgba(255,92,108,.15);color:var(--red)}
+.bd:hover{background:rgba(255,92,108,.18)}
+
+.wadd-btn{border:1px dashed var(--text4);background:transparent;border-radius:var(--r-sm);padding:14px;text-align:center;color:var(--text4);cursor:pointer;font-size:13px;font-weight:600;transition:all .25s;margin-top:10px;width:100%;font-family:'Syne',sans-serif}
+.wadd-btn:hover{border-color:var(--btc);color:var(--btc)}
+.wempty{text-align:center;color:var(--text4);font-size:12px;padding:28px 10px;line-height:1.6}
+
+.refresh-btn{background:none;border:1px solid var(--border);color:var(--text3);padding:5px 10px;border-radius:var(--r-xs);font-size:10px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;transition:all .2s;text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:5px}
+.refresh-btn:hover{border-color:var(--btc);color:var(--text)}
+.refresh-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Goals */
+.gw{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.gi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:16px;transition:border-color .2s}
+.gi:hover{border-color:var(--border2)}
+.gt{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.gn{font-weight:700;font-size:14px;cursor:pointer;padding:2px 8px;border:1px solid transparent;border-radius:var(--r-xs);transition:border-color .2s}
+.gn:hover{border-color:var(--text4)}
+.gb{display:flex;gap:4px}
+.gtr{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.gf{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.22,1,.36,1);background:linear-gradient(90deg,var(--btc),var(--amber))}
+.gf.dn{background:linear-gradient(90deg,var(--green),#6ee7b7)}
+.ginfo{display:flex;justify-content:space-between;font-size:11px;color:var(--text2)}
+.gpct{font-weight:700}.gpct.ok{color:var(--green)}
+.gmeta{font-size:11px;color:var(--text4);margin-top:5px;line-height:1.5}
+.gmeta .gc{color:var(--amber);font-family:'IBM Plex Mono',monospace;font-weight:500}
+.gmeta .gd{color:var(--green);font-weight:600}
+
+/* Achievements */
+.ag{display:grid;grid-template-columns:repeat(auto-fill,minmax(94px,1fr));gap:8px;margin-top:10px}
+.ac{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 6px 12px;text-align:center;transition:all .35s;position:relative}
+.ac.on{border-color:var(--amber);background:rgba(245,183,49,.04);box-shadow:0 0 16px var(--amber-glow)}
+.ac.off{opacity:.25;filter:grayscale(.5)}
+.ae{font-size:26px;line-height:1;margin-bottom:4px}
+.al{font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.av{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--amber);font-weight:600;margin-top:2px}
+.ac.on .al{color:var(--text)}
+.ack{position:absolute;top:-5px;right:-5px;width:18px;height:18px;background:var(--amber);border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--bg);box-shadow:0 2px 8px var(--amber-glow)}
+
+/* Modal */
+.mbg{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.65);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.mbg.open{display:flex}
+.mbox{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:28px;width:92%;max-width:380px;animation:fs .25s ease}
+.mbox h3{font-size:16px;font-weight:700;margin-bottom:18px}
+.mbox .fd{margin-bottom:12px}
+.fl{font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:500;letter-spacing:.3px;display:block}
+.mf{display:flex;gap:8px;justify-content:flex-end;margin-top:22px}
+
+/* Toast */
+.toast{position:fixed;bottom:28px;left:50%;z-index:200;background:var(--bg4);border:1px solid var(--amber);border-radius:var(--r);padding:14px 24px;display:flex;align-items:center;gap:12px;transform:translate(-50%,80px);opacity:0;transition:all .45s cubic-bezier(.22,1,.36,1);box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:90vw}
+.toast.pop{transform:translate(-50%,0);opacity:1}
+.ti{font-size:28px}.tm{font-size:13px;font-weight:600}
+
+.foot{text-align:center;padding:28px 0 0;font-size:10px;color:var(--text4);border-top:1px solid var(--border);margin-top:28px;line-height:1.7;letter-spacing:.3px}
+.foot a{color:var(--btc-soft);text-decoration:none}
+.foot a:hover{text-decoration:underline}
+
+@media(max-width:600px){
+  .sv{font-size:18px}
+  .ag{grid-template-columns:repeat(auto-fill,minmax(78px,1fr))}
+  .app{padding:16px 14px 80px}
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-orb a"></div>
+<div class="bg-orb b"></div>
+<div class="app">
+
+  <header class="header">
+    <div class="logo">
+      <div class="logo-mark"><span>₿</span></div>
+      <div class="logo-title">BTC Stack Tracker<small>mempool.space · blockstream.info · CoinGecko</small></div>
+    </div>
+    <div class="header-r">
+      <div class="live-pill"><div class="live-dot"></div>Live</div>
+      <button class="hbtn" onclick="exportData()">Export</button>
+      <button class="hbtn" onclick="document.getElementById('importFile').click()">Import</button>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importData(event)">
+      <button class="hbtn danger" onclick="resetAll()">Reset</button>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="g stat st">
+      <div class="g-t">BTC Price</div>
+      <div class="sv cp" id="vP">—</div>
+      <div id="vPB" class="sb ne">loading</div>
+      <div class="pts" id="vPT">connecting…</div>
+    </div>
+    <div class="g stat st">
+      <div class="g-t">Total Stack</div>
+      <div class="sv cpo" id="vS">0 BTC</div>
+      <div class="ss" id="vSS">0 sats</div>
+    </div>
+    <div class="g stat st">
+      <div class="g-t">USD Value</div>
+      <div class="sv ca" id="vU">$0.00</div>
+      <div class="ss" id="vUW">across 0 wallets</div>
+    </div>
+    <div class="g stat st">
+      <div class="g-t">vs 30d Ago</div>
+      <div class="sv ce" id="vC">—</div>
+      <div class="ss" id="vCS">based on holdings now</div>
+    </div>
+  </div>
+
+  <div class="chart-wrap st">
+    <div class="chart-head">
+      <div class="g-t" style="margin:0">BTC Price Chart</div>
+      <div class="chart-tabs">
+        <button class="chart-tab on" data-range="30" onclick="loadChart(30)">30d</button>
+        <button class="chart-tab" data-range="90" onclick="loadChart(90)">90d</button>
+        <button class="chart-tab" data-range="max" onclick="loadChart('max')">All</button>
+      </div>
+    </div>
+    <svg class="chart-svg" id="priceChart" viewBox="0 0 800 180" preserveAspectRatio="none"></svg>
+    <div class="chart-info">
+      <span id="chartLow">Low: —</span>
+      <span id="chartHigh">High: —</span>
+    </div>
+  </div>
+
+  <div class="g st" style="margin-bottom:14px">
+    <div class="g-t">
+      <span>Your Wallets</span>
+      <button class="refresh-btn" id="refreshBtn" onclick="refreshAll()">↻ Refresh</button>
+    </div>
+    <div id="walletList" class="wlist"></div>
+    <div id="walletEmpty" class="wempty">No wallets added yet.<br>Add a BTC address below to track its balance.</div>
+    <button class="wadd-btn" id="waddBtn" onclick="showAddWallet()">+ Add Wallet</button>
+    <div class="wform" id="wform" style="display:none">
+      <div class="wform-fields">
+        <div>
+          <label class="fl">Bitcoin Address</label>
+          <input type="text" id="waAddr" placeholder="bc1... / 1... / 3...">
+        </div>
+        <div>
+          <label class="fl">Label (optional)</label>
+          <input type="text" id="waLabel" class="label-input" placeholder="e.g. Cold Storage, Hardware Wallet">
+        </div>
+        <div class="wform-actions">
+          <button class="btn bs bo" onclick="hideAddWallet()">Cancel</button>
+          <button class="btn bs bp" onclick="saveWallet()">Add Wallet</button>
+        </div>
+      </div>
+    </div>
+    <div id="walletNote" style="font-size:10px;color:var(--text4);margin-top:12px;line-height:1.5;display:none">Balances refresh automatically every 5 minutes. Click ↻ Refresh to update now.</div>
+  </div>
+
+  <div class="g st" style="margin-bottom:14px">
+    <div class="g-t">Stacking Goals</div>
+    <div class="gw" id="gW"></div>
+    <button class="wadd-btn" onclick="addGoal()">+ Add Goal</button>
+  </div>
+
+  <div class="g st" style="margin-bottom:16px">
+    <div class="g-t">Achievements</div>
+    <div class="ag" id="aG"></div>
+  </div>
+
+  <div class="foot">
+    Balances from <a href="https://mempool.space" target="_blank" rel="noopener">mempool.space</a> with <a href="https://blockstream.info" target="_blank" rel="noopener">blockstream.info</a> fallback · Price from CoinGecko · All data local · Watch-only, never paste private keys anywhere
+  </div>
+</div>
+
+<div class="mbg" id="modal">
+  <div class="mbox">
+    <h3 id="mT">Edit Goal</h3>
+    <div class="fd"><label class="fl">Goal Name</label><input type="text" id="mN" placeholder="e.g. Stack to 1 BTC"></div>
+    <div class="fd"><label class="fl">Target BTC</label><input type="number" id="mA" placeholder="e.g. 1" min="0" step="any"></div>
+    <div class="mf">
+      <button class="btn bo" onclick="closeModal()">Cancel</button>
+      <button class="btn bp" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div class="ti" id="tI">🏆</div>
+  <div class="tm" id="tM">Achievement Unlocked!</div>
+</div>
+
+<script>
+const KEY='btc_stack_v1';
+let S={wallets:[],goals:[],unlocked:[],price:0,priceChg30:0,priceThen:0};
+let chartData=null,chartRange=30;
+
+function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);Object.assign(S,d);if(!S.wallets)S.wallets=[];if(!S.goals)S.goals=[];if(!S.unlocked)S.unlocked=[]}}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({wallets:S.wallets,goals:S.goals,unlocked:S.unlocked}))}catch(e){}}
+
+function validAddr(a){
+  if(!a)return false;
+  const t=a.trim();
+  return /^(bc1[a-z0-9]{25,87}|[13][1-9A-HJ-NP-Za-km-z]{25,34})$/.test(t);
+}
+
+function fBTC(sats){
+  if(!isFinite(sats)||sats<0)return'0 BTC';
+  const btc=sats/1e8;
+  if(btc>=1)return btc.toFixed(4)+' BTC';
+  if(btc>=0.001)return btc.toFixed(6)+' BTC';
+  return btc.toFixed(8)+' BTC';
+}
+function fSats(sats){if(!isFinite(sats))return'—';return Math.round(sats).toLocaleString()+' sats'}
+function fU(n){
+  if(!isFinite(n))return'—';
+  if(n>=1e6)return'$'+(n/1e6).toFixed(2)+'M';
+  if(n>=1e3)return'$'+(n/1e3).toFixed(2)+'K';
+  return'$'+n.toFixed(2);
+}
+function shortAddr(a){if(!a)return'';if(a.length<=20)return a;return a.slice(0,10)+'…'+a.slice(-8)}
+
+/* ── Price ── */
+const PRICE_APIS=[
+  {url:'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd',get:d=>d.bitcoin?.usd||0},
+];
+async function fetchPrice(){
+  const ts=document.getElementById('vPT');
+  for(const api of PRICE_APIS){
+    try{
+      const ac=new AbortController(),t=setTimeout(()=>ac.abort(),15000);
+      const r=await fetch(api.url,{signal:ac.signal,cache:'no-store'});
+      clearTimeout(t);
+      if(!r.ok)continue;
+      const d=await r.json(),p=api.get(d);
+      if(p>0){S.price=p;ts.textContent='updated '+new Date().toLocaleTimeString();render();return}
+    }catch(e){}
+  }
+  if(S.price<=0){S.price=70000;ts.textContent='fallback ~$70k'}
+  else ts.textContent='cached · retrying';
+  render();
+}
+
+async function fetchChange30d(){
+  try{
+    const ac=new AbortController(),t=setTimeout(()=>ac.abort(),15000);
+    const r=await fetch('https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=30&interval=daily',{signal:ac.signal,cache:'no-store'});
+    clearTimeout(t);
+    if(!r.ok)return;
+    const d=await r.json(),prices=d.prices||[];
+    if(prices.length>=2){
+      const first=prices[0][1],last=prices[prices.length-1][1];
+      if(first>0){S.priceChg30=(last-first)/first*100;S.priceThen=first;render()}
+    }
+  }catch(e){}
+}
+
+async function loadChart(days){
+  chartRange=days;
+  document.querySelectorAll('.chart-tab').forEach(b=>b.classList.toggle('on',b.dataset.range===String(days)));
+  const svg=document.getElementById('priceChart');
+  svg.innerHTML='<text x="400" y="90" text-anchor="middle" fill="#5c5878" font-family="IBM Plex Mono" font-size="11">loading…</text>';
+  try{
+    const ac=new AbortController(),t=setTimeout(()=>ac.abort(),15000);
+    const r=await fetch(`https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}`,{signal:ac.signal,cache:'no-store'});
+    clearTimeout(t);
+    if(!r.ok)throw 0;
+    const d=await r.json();
+    chartData=d.prices||[];
+    renderChart();
+  }catch(e){
+    svg.innerHTML='<text x="400" y="90" text-anchor="middle" fill="#ff5c6c" font-family="IBM Plex Mono" font-size="11">chart unavailable</text>';
+  }
+}
+
+function renderChart(){
+  if(!chartData||!chartData.length)return;
+  const svg=document.getElementById('priceChart'),W=800,H=180,P=8;
+  const prices=chartData.map(p=>p[1]),min=Math.min(...prices),max=Math.max(...prices),range=max-min||1;
+  const x=i=>P+(i/(chartData.length-1))*(W-2*P);
+  const y=v=>H-P-((v-min)/range)*(H-2*P);
+  const pts=chartData.map((p,i)=>x(i)+','+y(p[1])).join(' ');
+  const area=`M ${x(0)},${H-P} L ${chartData.map((p,i)=>x(i)+','+y(p[1])).join(' L ')} L ${x(chartData.length-1)},${H-P} Z`;
+  const up=prices[prices.length-1]>=prices[0];
+  const col=up?'#3ddc84':'#ff5c6c',fill=up?'rgba(61,220,132,.25)':'rgba(255,92,108,.25)';
+  svg.innerHTML=`<defs><linearGradient id="gradC" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="${fill}"/><stop offset="100%" stop-color="${fill.replace(/[\d\.]+\)$/,'0)')}"/></linearGradient></defs><path d="${area}" fill="url(#gradC)"/><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round"/>`;
+  document.getElementById('chartLow').textContent='Low: '+fU(min);
+  document.getElementById('chartHigh').textContent='High: '+fU(max);
+}
+
+/* ── Wallet Balance Fetching ── */
+const BAL_APIS=[
+  {name:'mempool.space',url:a=>`https://mempool.space/api/address/${a}`,parse:d=>{const c=d.chain_stats,m=d.mempool_stats;return(c.funded_txo_sum-c.spent_txo_sum)+(m.funded_txo_sum-m.spent_txo_sum)}},
+  {name:'blockstream.info',url:a=>`https://blockstream.info/api/address/${a}`,parse:d=>{const c=d.chain_stats,m=d.mempool_stats;return(c.funded_txo_sum-c.spent_txo_sum)+(m.funded_txo_sum-m.spent_txo_sum)}},
+];
+
+async function fetchWalletBalance(addr){
+  for(const api of BAL_APIS){
+    try{
+      const ac=new AbortController(),t=setTimeout(()=>ac.abort(),12000);
+      const r=await fetch(api.url(addr),{signal:ac.signal,cache:'no-store'});
+      clearTimeout(t);
+      if(!r.ok)continue;
+      const d=await r.json();
+      const sats=api.parse(d);
+      if(isFinite(sats))return{sats,source:api.name};
+    }catch(e){}
+  }
+  throw new Error('all APIs failed');
+}
+
+let refreshing=false;
+async function refreshAll(){
+  if(refreshing||!S.wallets.length)return;
+  refreshing=true;
+  const btn=document.getElementById('refreshBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span> Refreshing…';
+  S.wallets.forEach(w=>{w.loading=true;w.error=null});
+  renderWallets();
+  await Promise.allSettled(S.wallets.map(async w=>{
+    try{
+      const{sats,source}=await fetchWalletBalance(w.address);
+      w.balance=sats;w.lastUpdated=Date.now();w.source=source;w.error=null;
+    }catch(e){w.error=e.message||'fetch failed'}
+    w.loading=false;
+    renderWallets();render();
+  }));
+  save();
+  refreshing=false;
+  btn.disabled=false;btn.innerHTML='↻ Refresh';
+  renderWallets();render();
+}
+
+async function refreshOne(id){
+  const w=S.wallets.find(x=>x.id===id);if(!w||w.loading)return;
+  w.loading=true;w.error=null;renderWallets();
+  try{
+    const{sats,source}=await fetchWalletBalance(w.address);
+    w.balance=sats;w.lastUpdated=Date.now();w.source=source;w.error=null;
+  }catch(e){w.error=e.message||'fetch failed'}
+  w.loading=false;save();renderWallets();render();
+}
+
+/* ── Wallet Management ── */
+function showAddWallet(){
+  document.getElementById('wform').style.display='block';
+  document.getElementById('waAddr').value='';
+  document.getElementById('waLabel').value='';
+  setTimeout(()=>document.getElementById('waAddr').focus(),50);
+}
+function hideAddWallet(){document.getElementById('wform').style.display='none'}
+
+function saveWallet(){
+  const addr=document.getElementById('waAddr').value.trim();
+  const label=document.getElementById('waLabel').value.trim();
+  if(!validAddr(addr)){queueToast('⚠️','Invalid Bitcoin address format');return}
+  if(S.wallets.some(w=>w.address===addr)){queueToast('⚠️','Address already added');return}
+  const w={id:Date.now(),address:addr,label:label||'Wallet '+(S.wallets.length+1),balance:0,lastUpdated:0,loading:true,error:null};
+  S.wallets.push(w);
+  save();hideAddWallet();renderWallets();
+  (async()=>{
+    try{
+      const{sats,source}=await fetchWalletBalance(addr);
+      w.balance=sats;w.lastUpdated=Date.now();w.source=source;w.error=null;
+      queueToast('✅','Added '+w.label+' · '+fBTC(sats));
+    }catch(e){w.error='fetch failed';queueToast('⚠️','Added but balance fetch failed')}
+    w.loading=false;save();renderWallets();render();
+  })();
+}
+
+function delWallet(id){
+  const w=S.wallets.find(x=>x.id===id);if(!w)return;
+  if(!confirm('Remove wallet "'+w.label+'"?'))return;
+  S.wallets=S.wallets.filter(x=>x.id!==id);
+  save();renderWallets();render();
+}
+
+let editingWalletId=null;
+function renameWallet(id){
+  const w=S.wallets.find(x=>x.id===id);if(!w)return;
+  const name=prompt('Rename wallet:',w.label);
+  if(name===null)return;
+  w.label=name.trim()||w.label;save();renderWallets();
+}
+
+function totalSats(){return S.wallets.reduce((s,w)=>s+(w.balance||0),0)}
+
+function renderWallets(){
+  const list=document.getElementById('walletList');
+  const empty=document.getElementById('walletEmpty');
+  const note=document.getElementById('walletNote');
+  if(!S.wallets.length){list.innerHTML='';empty.style.display='block';note.style.display='none';return}
+  empty.style.display='none';note.style.display='block';
+  const p=S.price;
+  list.innerHTML=S.wallets.map(w=>{
+    const btc=(w.balance||0)/1e8,usd=btc*p;
+    const status=w.loading?'<span class="spin"></span>loading':w.error?'⚠ '+w.error:w.lastUpdated?'updated '+new Date(w.lastUpdated).toLocaleTimeString()+(w.source?' · '+w.source:''):'not checked';
+    const statusCls=w.loading?'loading':w.error?'err':w.lastUpdated?'ok':'';
+    return`<div class="wi ${w.error?'err':''}"><div class="wt"><div class="wn" onclick="renameWallet(${w.id})" title="Click to rename">${w.label}</div><div class="wb"><button class="btn bs bo" onclick="refreshOne(${w.id})" title="Refresh this wallet">↻</button><button class="btn bs bo" onclick="renameWallet(${w.id})" title="Rename">✎</button><button class="btn bs bd" onclick="delWallet(${w.id})" title="Remove">✕</button></div></div><div class="waddr" title="${w.address}">${w.address}</div><div class="wbal"><div><div class="wbal-btc">${fBTC(w.balance||0)}</div><div class="wbal-status ${statusCls}">${status}</div></div><div class="wbal-usd">${fU(usd)}</div></div></div>`;
+  }).join('');
+}
+
+/* ── Goals ── */
+let eI=null;
+function addGoal(){S.goals.push({id:Date.now().toString(36),name:'Stack to '+(S.goals.length+1)+' BTC',target:1});save();render()}
+function delGoal(i){S.goals.splice(i,1);save();render()}
+function editGoal(i){
+  eI=i;const g=S.goals[i];
+  document.getElementById('mT').textContent='Edit Goal';
+  document.getElementById('mN').value=g.name;
+  document.getElementById('mA').value=g.target;
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.getElementById('mN').focus(),100);
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');eI=null}
+function saveModal(){
+  if(eI===null)return;
+  S.goals[eI].name=document.getElementById('mN').value.trim()||'Untitled';
+  S.goals[eI].target=Math.max(0,parseFloat(document.getElementById('mA').value)||0);
+  save();closeModal();render();
+}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+document.getElementById('mA').addEventListener('keydown',e=>{if(e.key==='Enter')saveModal()});
+
+function renderGoals(totalBTC){
+  const w=document.getElementById('gW');
+  if(!S.goals.length){w.innerHTML='<div class="wempty" style="padding:14px 10px">No goals yet. Add one above to track your stacking progress!</div>';return}
+  const p=S.price;
+  w.innerHTML=S.goals.map((g,i)=>{
+    const pct=g.target>0?Math.min(100,totalBTC/g.target*100):100,done=pct>=100;
+    const rem=Math.max(0,g.target-totalBTC);
+    return`<div class="gi"><div class="gt"><div class="gn" onclick="editGoal(${i})" title="Click to edit">${g.name}</div><div class="gb"><button class="btn bs bo" onclick="editGoal(${i})">✏️</button><button class="btn bs bd" onclick="delGoal(${i})">✕</button></div></div><div class="gtr"><div class="gf${done?' dn':''}" style="width:${pct}%"></div></div><div class="ginfo"><span>${totalBTC.toFixed(6)} / ${g.target} BTC</span><span class="gpct${done?' ok':''}">${pct.toFixed(2)}%</span></div><div class="gmeta">${done?'<span class="gd">✓ Goal achieved!</span>':'Need <span class="gc">'+rem.toFixed(6)+' BTC ('+fU(rem*p)+')</span> more'}</div></div>`;
+  }).join('');
+}
+
+/* ── Achievements (thresholds in sats) ── */
+const T=[
+  {t:1000,e:'🌱',n:'First Sats',p:'~8B wallets possible'},
+  {t:10000,e:'🪙',n:'10k Sats',p:'~2.1B'},
+  {t:100000,e:'🎯',n:'100k Sats',p:'~210M'},
+  {t:210000,e:'🎲',n:'Lucky 21k',p:'~100M'},
+  {t:500000,e:'⭐',n:'Half mBTC',p:'~42M'},
+  {t:1000000,e:'💫',n:'1M Sats',p:'~21M'},
+  {t:2100000,e:'🔮',n:'Double 21',p:'~10M'},
+  {t:5000000,e:'🔥',n:'5M Sats',p:'~4.2M'},
+  {t:10000000,e:'💠',n:'Deci Coin',p:'~2.1M'},
+  {t:21000000,e:'🤘',n:'Rare Sat',p:'~1M'},
+  {t:50000000,e:'⚡',n:'Half Coin',p:'~420k'},
+  {t:69000000,e:'😏',n:'Nice.',p:'~304k'},
+  {t:100000000,e:'🏆',n:'Wholecoiner',p:'~210k'},
+  {t:210000000,e:'👑',n:'Rare Whole',p:'~100k'},
+  {t:500000000,e:'🚀',n:'Five Bagger',p:'~42k'},
+  {t:1000000000,e:'🐋',n:'10 BTC',p:'~21k'},
+  {t:2100000000,e:'💎',n:'21 Club',p:'~10k'},
+  {t:5000000000,e:'🏔️',n:'50 BTC',p:'~4.2k'},
+  {t:10000000000,e:'🌌',n:'Platinum',p:'~2.1k'},
+  {t:50000000000,e:'☄️',n:'Meteor',p:'~420'},
+  {t:100000000000,e:'🐉',n:'1000 BTC Whale',p:'~210'},
+  {t:500000000000,e:'🪐',n:'5k BTC',p:'~42'},
+  {t:2100000000000,e:'♾️',n:'Mega Whale',p:'~10'},
+];
+
+const toastQueue=[];let toastShowing=false;
+function queueToast(i,m){toastQueue.push({i,m});if(!toastShowing)showNextToast()}
+function showNextToast(){
+  if(!toastQueue.length){toastShowing=false;return}
+  toastShowing=true;
+  const{i,m}=toastQueue.shift();
+  document.getElementById('tI').textContent=i;document.getElementById('tM').textContent=m;
+  const t=document.getElementById('toast');t.classList.add('pop');
+  setTimeout(()=>{t.classList.remove('pop');setTimeout(showNextToast,400)},3500);
+}
+
+let lastAchSats=0;
+function checkAch(sats){
+  let changed=false;
+  T.forEach(a=>{if(sats>=a.t&&!S.unlocked.includes(a.t)){S.unlocked.push(a.t);queueToast(a.e,a.n+' unlocked!');changed=true}});
+  if(changed)save();
+}
+function renderAch(sats){
+  document.getElementById('aG').innerHTML=T.map(a=>{
+    const on=sats>=a.t;
+    const label=a.t<1e8?fSats(a.t):((a.t/1e8)+' BTC');
+    return`<div class="ac ${on?'on':'off'}">${on?'<div class="ack">✓</div>':''}<div class="ae">${a.e}</div><div class="al">${a.n}</div><div class="av">${label}</div><div class="av" style="font-size:9px;color:#6b6560;margin-top:2px">${a.p}</div></div>`;
+  }).join('');
+}
+
+/* ── Render ── */
+function render(){
+  const p=S.price,sats=totalSats(),btc=sats/1e8,usd=btc*p;
+  document.getElementById('vP').textContent=p>0?fU(p):'—';
+  const b=document.getElementById('vPB');
+  if(S.priceChg30!==0){b.textContent=(S.priceChg30>=0?'+':'')+S.priceChg30.toFixed(2)+'% 30d';b.className='sb '+(S.priceChg30>=0?'up':'down')}
+  else{b.textContent='—';b.className='sb ne'}
+  document.getElementById('vS').textContent=fBTC(sats);
+  document.getElementById('vSS').textContent=fSats(sats);
+  document.getElementById('vU').textContent=fU(usd);
+  document.getElementById('vUW').textContent='across '+S.wallets.length+' wallet'+(S.wallets.length===1?'':'s');
+  if(S.priceThen>0){
+    const then=btc*S.priceThen,diff=usd-then,pct=then>0?(diff/then)*100:0;
+    document.getElementById('vC').textContent=(diff>=0?'+':'')+fU(Math.abs(diff));
+    document.getElementById('vC').style.color=diff>=0?'var(--green)':'var(--red)';
+    document.getElementById('vCS').textContent=(pct>=0?'+':'')+pct.toFixed(2)+'% vs 30d ago';
+  }else{
+    document.getElementById('vC').textContent='—';
+    document.getElementById('vCS').textContent='waiting on 30d data';
+  }
+  renderGoals(btc);
+  if(Math.abs(sats-lastAchSats)>Math.max(1000,lastAchSats*0.0005)){renderAch(sats);lastAchSats=sats}
+  checkAch(sats);
+}
+
+/* ── Export/Import/Reset ── */
+function exportData(){
+  const blob=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),data:{wallets:S.wallets,goals:S.goals,unlocked:S.unlocked}},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='btc-stack-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  queueToast('💾','Backup downloaded');
+}
+function importData(ev){
+  const f=ev.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      const src=d.data||d;
+      if(!confirm('Import will overwrite current data. Continue?')){ev.target.value='';return}
+      if(src.wallets)S.wallets=src.wallets.map(w=>({...w,loading:false,error:null}));
+      if(src.goals)S.goals=src.goals;
+      if(src.unlocked)S.unlocked=src.unlocked;
+      save();render();renderWallets();
+      refreshAll();
+      queueToast('📥','Data imported · refreshing balances');
+    }catch(err){queueToast('❌','Invalid backup file')}
+    ev.target.value='';
+  };
+  rd.readAsText(f);
+}
+
+function resetAll(){
+  if(!confirm('Clear all saved data? This cannot be undone.'))return;
+  localStorage.removeItem(KEY);
+  S={wallets:[],goals:[],unlocked:[],price:S.price,priceChg30:S.priceChg30,priceThen:S.priceThen};
+  lastAchSats=0;
+  renderWallets();render();
+}
+
+document.addEventListener('visibilitychange',()=>{
+  document.body.classList.toggle('hidden',document.hidden);
+});
+
+/* ── Init ── */
+load();renderWallets();render();
+fetchPrice();setInterval(fetchPrice,60000);
+fetchChange30d();setInterval(fetchChange30d,3600000);
+loadChart(30);
+if(S.wallets.length)refreshAll();
+setInterval(()=>{if(!document.hidden)refreshAll()},300000);
+</script>
+</body>
+</html>
