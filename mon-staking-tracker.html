@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#06060e">
 <title>MON Staking Tracker — MonadVision APY</title>
-<link rel="manifest" href='data:application/manifest+json,{"name":"MON Staking Tracker","short_name":"MON Staker","start_url":".","display":"standalone","background_color":"%2306060e","theme_color":"%23836ef9","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 192 192%22><rect width=%22192%22 height=%22192%22 rx=%2240%22 fill=%22%23836ef9%22/><text x=%2296%22 y=%22130%22 font-family=%22monospace%22 font-size=%22110%22 font-weight=%22700%22 fill=%22white%22 text-anchor=%22middle%22>M</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23836ef9%22/><text x=%2250%22 y=%2268%22 font-family=%22monospace%22 font-size=%2256%22 font-weight=%22700%22 fill=%22white%22 text-anchor=%22middle%22>M</text></svg>'>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -567,17 +566,33 @@ const APIS=[
    get:d=>({p:d.market_data?.current_price?.usd||0,c:d.market_data?.price_change_percentage_24h||0})},
 ];
 let aI=0;
+
+const PROXIES=[
+  u=>u,
+  u=>'https://corsproxy.io/?'+encodeURIComponent(u),
+  u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
+];
+
+async function smartFetch(url,timeout=15000){
+  for(const mk of PROXIES){
+    try{
+      const ac=new AbortController(),t=setTimeout(()=>ac.abort(),timeout);
+      const r=await fetch(mk(url),{signal:ac.signal,cache:'no-store',headers:{Accept:'application/json'}});
+      clearTimeout(t);
+      if(!r.ok)continue;
+      return await r.json();
+    }catch(e){}
+  }
+  throw new Error('all fetch attempts failed');
+}
+
 async function fetchPrice(){
   const ts=document.getElementById('vPT');
   for(let i=0;i<APIS.length;i++){
     const api=APIS[(aI+i)%APIS.length];
     try{
-      const ac=new AbortController(),t=setTimeout(()=>ac.abort(),15000);
-      const r=await fetch(api.url,{signal:ac.signal,headers:{Accept:'application/json'},cache:'no-store'});
-      clearTimeout(t);
-      if(r.status===429){aI=(aI+1)%APIS.length;continue}
-      if(!r.ok)throw 0;
-      const d=await r.json(),{p,c}=api.get(d);
+      const d=await smartFetch(api.url);
+      const{p,c}=api.get(d);
       if(p>0){S.price=p;S.priceChg=c;aI=(aI+i)%APIS.length;
         ts.textContent='updated '+new Date().toLocaleTimeString();render();return}
     }catch(e){}
@@ -589,11 +604,8 @@ async function fetchPrice(){
 
 async function fetchChange30d(){
   try{
-    const ac=new AbortController(),t=setTimeout(()=>ac.abort(),15000);
-    const r=await fetch('https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=30&interval=daily',{signal:ac.signal,cache:'no-store'});
-    clearTimeout(t);
-    if(!r.ok)return;
-    const d=await r.json(),prices=d.prices||[];
+    const d=await smartFetch('https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=30&interval=daily');
+    const prices=d.prices||[];
     if(prices.length>=2){
       const first=prices[0][1],last=prices[prices.length-1][1];
       if(first>0){S.priceChg30=(last-first)/first*100;render()}
@@ -607,11 +619,7 @@ async function loadChart(days){
   const svg=document.getElementById('priceChart');
   svg.innerHTML='<text x="400" y="90" text-anchor="middle" fill="#5c5878" font-family="IBM Plex Mono" font-size="11">loading…</text>';
   try{
-    const ac=new AbortController(),t=setTimeout(()=>ac.abort(),15000);
-    const r=await fetch(`https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=${days}`,{signal:ac.signal,cache:'no-store'});
-    clearTimeout(t);
-    if(!r.ok)throw 0;
-    const d=await r.json();
+    const d=await smartFetch(`https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=${days}`);
     chartData=d.prices||[];
     renderChart();
   }catch(e){
