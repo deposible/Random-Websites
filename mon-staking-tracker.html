@@ -696,13 +696,34 @@ async function findMONPool(){
   return monPoolCache;
 }
 
-async function gtOHLCV(poolAddr,timeframe,limit){
+function looksLikeStable(prices){
+  if(prices.length<5)return false;
+  const mean=prices.reduce((a,b)=>a+b,0)/prices.length;
+  if(mean<0.9||mean>1.1)return false;
+  const v=prices.reduce((a,b)=>a+(b-mean)**2,0)/prices.length;
+  return Math.sqrt(v)/mean<0.05;
+}
+
+async function gtOHLCV(timeframe,limit){
+  const pool=await findMONPool();
   for(const net of ['monad-mainnet','monad']){
-    try{
-      const d=await simpleFetch(`https://api.geckoterminal.com/api/v2/networks/${net}/pools/${poolAddr}/ohlcv/${timeframe}?limit=${limit}&currency=usd`);
-      const list=d.data?.attributes?.ohlcv_list||[];
-      if(list.length)return list.map(x=>[x[0]*1000,x[4]]).filter(x=>x[1]>0).reverse();
-    }catch(e){}
+    const results=[];
+    for(const side of ['base','quote']){
+      try{
+        const d=await simpleFetch(`https://api.geckoterminal.com/api/v2/networks/${net}/pools/${pool.pairAddress}/ohlcv/${timeframe}?limit=${limit}&currency=usd&token=${side}`);
+        const list=d.data?.attributes?.ohlcv_list||[];
+        if(list.length)results.push({side,list,latest:list[0][4]});
+      }catch(e){}
+    }
+    if(!results.length)continue;
+    let best;
+    if(S.price>0){
+      results.sort((a,b)=>Math.abs(Math.log(a.latest/S.price))-Math.abs(Math.log(b.latest/S.price)));
+      best=results[0];
+    }else{
+      best=results.find(r=>!looksLikeStable(r.list.map(x=>x[4])))||results[0];
+    }
+    return best.list.map(x=>[x[0]*1000,x[4]]).filter(x=>x[1]>0).reverse();
   }
   throw new Error('GT all networks failed');
 }
@@ -710,10 +731,7 @@ async function gtOHLCV(poolAddr,timeframe,limit){
 const HIST_SOURCES=[
   {
     name:'geckoterminal',
-    fetch:async()=>{
-      const pool=await findMONPool();
-      return gtOHLCV(pool.pairAddress,'day',365);
-    }
+    fetch:async()=>gtOHLCV('day',365)
   },
   {
     name:'coingecko',
@@ -726,7 +744,7 @@ const HIST_SOURCES=[
 
 async function fetchHistoricalPrices(){
   try{
-    const cached=JSON.parse(localStorage.getItem('mon_hist_cache')||'null');
+    const cached=JSON.parse(localStorage.getItem('mon_hist_cache_v2')||'null');
     if(cached&&cached.data&&cached.data.length){
       histPrices=cached.data;renderPurchases();calcChange30d();render();
       if((Date.now()-cached.time)<86400000)return;
@@ -737,7 +755,7 @@ async function fetchHistoricalPrices(){
       const data=await src.fetch();
       if(data.length){
         histPrices=data;
-        try{localStorage.setItem('mon_hist_cache',JSON.stringify({data,time:Date.now(),source:src.name}))}catch(e){}
+        try{localStorage.setItem('mon_hist_cache_v2',JSON.stringify({data,time:Date.now(),source:src.name}))}catch(e){}
         renderPurchases();calcChange30d();render();return;
       }
     }catch(e){}
@@ -782,8 +800,7 @@ async function loadChart(days){
   const tf=isMax||days>=90?'day':days>=2?'hour':'minute';
   const lim=isMax?365:days;
   try{
-    const pool=await findMONPool();
-    const data=await gtOHLCV(pool.pairAddress,tf,lim);
+    const data=await gtOHLCV(tf,lim);
     if(data.length){chartData=data;renderChart();return}
   }catch(e){}
   try{
