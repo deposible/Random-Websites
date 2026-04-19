@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#06060e">
+<title>WorldWire — Global News Explorer</title>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23836ef9%22/><text x=%2250%22 y=%2270%22 font-size=%2260%22 text-anchor=%22middle%22>🌐</text></svg>'>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#06060e;--bg2:#0c0c1a;--bg3:#141428;--bg4:#1a1a32;
+  --glass:rgba(14,14,30,.85);
+  --purple:#836ef9;--purple-soft:#a08aff;--purple-deep:#5a45c9;
+  --purple-glow:rgba(131,110,249,.25);
+  --cyan:#42e8d5;--green:#3ddc84;--amber:#f5b731;--red:#ff5c6c;
+  --text:#eae8f4;--text2:#a09cb8;--text3:#5c5878;--text4:#3a3658;
+  --border:rgba(131,110,249,.15);--border2:rgba(131,110,249,.28);
+  --map:#1a1830;--map-hover:#2a2848;--map-stroke:#06060e;
+  --r:14px;--r-sm:10px;--r-xs:6px;
+}
+html,body{height:100%}
+body{
+  font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);
+  overflow:hidden;-webkit-font-smoothing:antialiased;
+}
+.bg-grid{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(131,110,249,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(131,110,249,.025) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,black,transparent);
+}
+.bg-orb{position:fixed;border-radius:50%;filter:blur(120px);z-index:0;pointer-events:none;will-change:transform;animation:orbF 22s ease-in-out infinite alternate}
+.bg-orb.a{width:600px;height:600px;top:-15%;left:-10%;background:rgba(131,110,249,.08)}
+.bg-orb.b{width:500px;height:500px;bottom:-15%;right:-10%;background:rgba(66,232,213,.05);animation-delay:-11s}
+@keyframes orbF{0%{transform:translate(0,0)}100%{transform:translate(60px,40px)}}
+
+.app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;width:100vw}
+
+/* Header */
+.header{
+  padding:16px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  border-bottom:1px solid var(--border);background:rgba(14,14,30,.6);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);z-index:10;
+}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-mark{
+  width:40px;height:40px;border-radius:11px;
+  background:linear-gradient(135deg,var(--purple),var(--purple-deep));
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  box-shadow:0 0 22px var(--purple-glow),inset 0 1px 0 rgba(255,255,255,.2);
+}
+.logo-t{font-weight:800;font-size:18px;letter-spacing:-.3px;line-height:1.1}
+.logo-t small{display:block;font-weight:400;font-size:10px;color:var(--text3);letter-spacing:.6px;margin-top:2px;text-transform:uppercase}
+.search{
+  flex:1;max-width:340px;position:relative;
+}
+.search input{
+  width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:10px 14px 10px 36px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;
+  outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.search input:focus{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-glow)}
+.search input::placeholder{color:var(--text4)}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+.search-results{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg3);
+  border:1px solid var(--border2);border-radius:var(--r-sm);max-height:260px;overflow-y:auto;
+  box-shadow:0 12px 40px rgba(0,0,0,.5);display:none;z-index:20;
+}
+.search-results.open{display:block}
+.search-result{
+  padding:10px 14px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--border);transition:background .15s;
+}
+.search-result:last-child{border-bottom:none}
+.search-result:hover,.search-result.hl{background:var(--bg4)}
+.search-flag{font-size:16px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{
+  background:var(--bg2);border:1px solid var(--border);color:var(--text2);
+  padding:7px 14px;border-radius:20px;font-size:11px;cursor:pointer;
+  font-family:'Syne',sans-serif;font-weight:600;transition:all .2s;
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.chip:hover{border-color:var(--purple);color:var(--text)}
+.chip.on{background:var(--purple-deep);border-color:var(--purple);color:#fff;box-shadow:0 2px 12px var(--purple-glow)}
+.lang-toggle{
+  display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:3px;
+}
+.lang-btn{
+  background:none;border:none;color:var(--text3);padding:5px 12px;border-radius:16px;
+  font-size:10px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;transition:all .2s;
+}
+.lang-btn.on{background:var(--purple);color:#fff}
+
+/* Main map */
+.main{flex:1;position:relative;overflow:hidden}
+.map-svg{width:100%;height:100%;display:block;cursor:grab}
+.map-svg:active{cursor:grabbing}
+.country{
+  fill:var(--map);stroke:var(--map-stroke);stroke-width:.5;
+  transition:fill .2s,filter .2s;cursor:pointer;
+}
+.country:hover{fill:var(--map-hover);filter:brightness(1.2)}
+.country.selected{stroke-width:1.5;filter:drop-shadow(0 0 12px currentColor)}
+.country.dim{opacity:.25}
+
+/* Map controls */
+.controls{
+  position:absolute;bottom:24px;right:24px;display:flex;flex-direction:column;gap:6px;
+  background:var(--glass);border:1px solid var(--border);border-radius:var(--r-sm);padding:6px;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.ctrl{
+  width:34px;height:34px;background:none;border:none;color:var(--text);cursor:pointer;
+  border-radius:var(--r-xs);font-size:16px;font-weight:700;transition:background .15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.ctrl:hover{background:var(--bg4)}
+.ctrl:disabled{opacity:.3;cursor:not-allowed}
+
+/* Hint */
+.hint{
+  position:absolute;bottom:24px;left:24px;font-size:11px;color:var(--text3);
+  background:var(--glass);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:10px 14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  line-height:1.6;letter-spacing:.3px;pointer-events:none;
+}
+.hint .kbd{
+  background:var(--bg4);border:1px solid var(--border);padding:1px 6px;border-radius:4px;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);margin:0 2px;
+}
+
+/* Tooltip */
+.tooltip{
+  position:fixed;background:var(--glass);border:1px solid var(--border2);
+  border-radius:var(--r-sm);padding:12px 14px;pointer-events:none;z-index:50;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);max-width:300px;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);opacity:0;transition:opacity .15s;
+  font-size:12px;
+}
+.tooltip.show{opacity:1}
+.tooltip .tt-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.tooltip .tt-flag{font-size:18px}
+.tooltip .tt-name{font-weight:700;font-size:13px;letter-spacing:.2px}
+.tooltip .tt-headline{
+  color:var(--text);line-height:1.4;font-size:12px;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+}
+.tooltip .tt-source{
+  font-size:10px;color:var(--text3);margin-top:6px;
+  font-family:'IBM Plex Mono',monospace;
+}
+.tooltip .tt-loading{color:var(--text3);font-style:italic;font-size:11px}
+.tooltip .tt-hint{font-size:10px;color:var(--text4);margin-top:8px;padding-top:6px;border-top:1px solid var(--border);letter-spacing:.3px}
+
+/* Side panel */
+.panel{
+  position:fixed;top:0;right:0;bottom:0;width:min(440px,92vw);
+  background:var(--glass);border-left:1px solid var(--border2);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);z-index:30;
+  transform:translateX(100%);transition:transform .4s cubic-bezier(.22,1,.36,1);
+  display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.4);
+}
+.panel.open{transform:translateX(0)}
+.panel-head{padding:22px 22px 14px;border-bottom:1px solid var(--border);position:relative;flex-shrink:0}
+.panel-accent{
+  position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--panel-c1,var(--purple)),var(--panel-c2,var(--purple-deep)));
+}
+.panel-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+.panel-flag{font-size:34px;line-height:1;margin-bottom:4px}
+.panel-name{font-size:22px;font-weight:800;letter-spacing:-.4px;line-height:1.15}
+.panel-meta{font-size:11px;color:var(--text3);margin-top:4px;letter-spacing:.3px}
+.panel-close{
+  background:var(--bg3);border:1px solid var(--border);color:var(--text2);
+  width:32px;height:32px;border-radius:var(--r-xs);font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;
+}
+.panel-close:hover{background:var(--bg4);color:var(--red);border-color:var(--red)}
+.panel-stats{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
+.panel-stat{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.panel-stat strong{color:var(--panel-c1,var(--purple-soft));font-family:'IBM Plex Mono',monospace;margin-right:4px}
+.panel-body{flex:1;overflow-y:auto;padding:14px 22px 22px}
+.panel-body::-webkit-scrollbar{width:6px}
+.panel-body::-webkit-scrollbar-track{background:transparent}
+.panel-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+.article{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:14px;margin-bottom:10px;cursor:pointer;transition:all .2s;position:relative;
+  display:block;text-decoration:none;color:inherit;
+}
+.article:hover{border-color:var(--border2);transform:translateX(-2px);background:var(--bg3)}
+.art-img{
+  width:100%;height:120px;background:var(--bg);border-radius:var(--r-xs);margin-bottom:10px;
+  background-size:cover;background-position:center;position:relative;overflow:hidden;
+}
+.art-img::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.3),transparent 40%)}
+.art-title{font-size:14px;font-weight:700;line-height:1.4;margin-bottom:8px;color:var(--text)}
+.art-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace}
+.art-source{color:var(--panel-c1,var(--purple-soft));font-weight:600}
+.art-lang{background:var(--bg4);padding:1px 6px;border-radius:4px;color:var(--text2);font-size:9px;text-transform:uppercase;letter-spacing:.5px}
+.art-date{color:var(--text4)}
+.art-ext{position:absolute;top:10px;right:10px;font-size:11px;color:var(--text4);opacity:0;transition:opacity .2s}
+.article:hover .art-ext{opacity:1}
+
+.panel-loading{text-align:center;padding:40px 20px;color:var(--text3);font-size:13px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--purple);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.panel-empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:13px;line-height:1.6}
+.panel-empty .em{font-size:36px;margin-bottom:12px;display:block;opacity:.5}
+.panel-error{text-align:center;padding:30px 20px;color:var(--red);font-size:12px;line-height:1.5}
+
+/* Global view — trending */
+.trending{
+  position:absolute;top:20px;left:24px;background:var(--glass);border:1px solid var(--border);
+  border-radius:var(--r-sm);padding:12px 16px;backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);max-width:300px;z-index:5;
+}
+.trending-l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:6px}
+.trending-t{font-size:13px;font-weight:600;line-height:1.4;color:var(--text)}
+.trending-m{font-size:10px;color:var(--text4);margin-top:4px;font-family:'IBM Plex Mono',monospace}
+
+/* Status */
+.status{
+  position:absolute;top:20px;right:24px;font-size:10px;color:var(--text3);
+  background:var(--glass);border:1px solid var(--border);border-radius:20px;
+  padding:6px 14px;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:5;
+  display:flex;align-items:center;gap:6px;
+}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--amber)}
+.status.ok .status-dot{background:var(--green);animation:pulse 2s infinite}
+.status.err .status-dot{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+@media(max-width:768px){
+  .header{padding:12px;gap:10px}
+  .logo-t{font-size:15px}
+  .logo-t small{display:none}
+  .chips{order:3;width:100%}
+  .search{order:2;max-width:none}
+  .hint{display:none}
+  .trending{display:none}
+  .controls{bottom:14px;right:14px}
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-orb a"></div>
+<div class="bg-orb b"></div>
+
+<div class="app">
+  <header class="header">
+    <div class="logo">
+      <div class="logo-mark">🌐</div>
+      <div class="logo-t">WorldWire<small>Global news explorer</small></div>
+    </div>
+    <div class="search">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search any country..." autocomplete="off">
+      <div class="search-results" id="searchResults"></div>
+    </div>
+    <div class="chips" id="continentChips">
+      <button class="chip on" data-continent="">All</button>
+      <button class="chip" data-continent="EU">Europe</button>
+      <button class="chip" data-continent="AS">Asia</button>
+      <button class="chip" data-continent="AM">Americas</button>
+      <button class="chip" data-continent="AF">Africa</button>
+      <button class="chip" data-continent="OC">Oceania</button>
+    </div>
+    <div class="lang-toggle">
+      <button class="lang-btn on" data-lang="">All</button>
+      <button class="lang-btn" data-lang="eng">English</button>
+    </div>
+  </header>
+  <main class="main">
+    <svg class="map-svg" id="map"></svg>
+    <div class="trending" id="trending">
+      <div class="trending-l">🔥 Trending Globally</div>
+      <div class="trending-t" id="trendingTitle">Loading top stories…</div>
+      <div class="trending-m" id="trendingMeta"></div>
+    </div>
+    <div class="status" id="status"><span class="status-dot"></span><span id="statusText">Loading map…</span></div>
+    <div class="controls">
+      <button class="ctrl" id="zoomIn" title="Zoom in">+</button>
+      <button class="ctrl" id="zoomOut" title="Zoom out">−</button>
+      <button class="ctrl" id="zoomReset" title="Reset view">⌂</button>
+    </div>
+    <div class="hint">
+      <div>Hover a country to see its top story</div>
+      <div><span class="kbd">Click</span> to explore · <span class="kbd">Esc</span> to close</div>
+    </div>
+  </main>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<aside class="panel" id="panel">
+  <div class="panel-head">
+    <div class="panel-accent"></div>
+    <div class="panel-top">
+      <div>
+        <div class="panel-flag" id="panelFlag">🌐</div>
+        <div class="panel-name" id="panelName">Country</div>
+        <div class="panel-meta" id="panelMeta"></div>
+      </div>
+      <button class="panel-close" onclick="closePanel()" title="Close (Esc)">×</button>
+    </div>
+    <div class="panel-stats">
+      <div class="panel-stat"><strong id="statCount">—</strong>articles</div>
+      <div class="panel-stat"><strong id="statSources">—</strong>sources</div>
+      <div class="panel-stat"><strong id="statWindow">24h</strong>window</div>
+    </div>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+</aside>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+<script>
+/* ================================================================
+ * COUNTRY DATA
+ * Keyed by ISO 3166-1 numeric (matches world-atlas topojson IDs)
+ * Fields: [alpha2, fipsCode, name, flag, color1, color2, continent]
+ * fipsCode used for GDELT queries (falls back to alpha2 if identical)
+ * ================================================================ */
+const COUNTRIES = {
+  "004":["AF","AF","Afghanistan","🇦🇫","#d32011","#000000","AS"],
+  "008":["AL","AL","Albania","🇦🇱","#e41e20","#000000","EU"],
+  "010":["AQ","AY","Antarctica","🇦🇶","#ffffff","#3a6ea5","OC"],
+  "012":["DZ","AG","Algeria","🇩🇿","#006633","#ce1126","AF"],
+  "020":["AD","AN","Andorra","🇦🇩","#10069f","#d52b1e","EU"],
+  "024":["AO","AO","Angola","🇦🇴","#ce1126","#000000","AF"],
+  "032":["AR","AR","Argentina","🇦🇷","#74acdf","#ffffff","AM"],
+  "036":["AU","AS","Australia","🇦🇺","#012169","#e4002b","OC"],
+  "040":["AT","AU","Austria","🇦🇹","#ed2939","#ffffff","EU"],
+  "044":["BS","BF","Bahamas","🇧🇸","#00778b","#ffc72c","AM"],
+  "048":["BH","BA","Bahrain","🇧🇭","#da0914","#ffffff","AS"],
+  "050":["BD","BG","Bangladesh","🇧🇩","#006a4e","#f42a41","AS"],
+  "051":["AM","AM","Armenia","🇦🇲","#d90012","#0033a0","AS"],
+  "056":["BE","BE","Belgium","🇧🇪","#000000","#fdda24","EU"],
+  "064":["BT","BT","Bhutan","🇧🇹","#ffcc33","#ff4e12","AS"],
+  "068":["BO","BL","Bolivia","🇧🇴","#d52b1e","#007a33","AM"],
+  "070":["BA","BK","Bosnia and Herz.","🇧🇦","#002395","#fecb00","EU"],
+  "072":["BW","BC","Botswana","🇧🇼","#75aadb","#000000","AF"],
+  "076":["BR","BR","Brazil","🇧🇷","#009c3b","#ffdf00","AM"],
+  "084":["BZ","BH","Belize","🇧🇿","#003f87","#ce1126","AM"],
+  "090":["SB","BP","Solomon Is.","🇸🇧","#0051ba","#215b33","OC"],
+  "096":["BN","BX","Brunei","🇧🇳","#f7e017","#000000","AS"],
+  "100":["BG","BU","Bulgaria","🇧🇬","#00966e","#d62612","EU"],
+  "104":["MM","BM","Myanmar","🇲🇲","#fecb00","#34b233","AS"],
+  "108":["BI","BY","Burundi","🇧🇮","#ce1126","#00a550","AF"],
+  "112":["BY","BO","Belarus","🇧🇾","#c8313e","#4aa657","EU"],
+  "116":["KH","CB","Cambodia","🇰🇭","#032ea1","#e00025","AS"],
+  "120":["CM","CM","Cameroon","🇨🇲","#007a5e","#ce1126","AF"],
+  "124":["CA","CA","Canada","🇨🇦","#ff0000","#ffffff","AM"],
+  "140":["CF","CT","Central African Rep.","🇨🇫","#003082","#ffce00","AF"],
+  "144":["LK","CE","Sri Lanka","🇱🇰","#ffbe29","#8d153a","AS"],
+  "148":["TD","CD","Chad","🇹🇩","#002664","#fecb00","AF"],
+  "152":["CL","CI","Chile","🇨🇱","#d52b1e","#0039a6","AM"],
+  "156":["CN","CH","China","🇨🇳","#ee1c25","#ffff00","AS"],
+  "158":["TW","TW","Taiwan","🇹🇼","#fe0000","#000095","AS"],
+  "170":["CO","CO","Colombia","🇨🇴","#fcd116","#003893","AM"],
+  "174":["KM","CN","Comoros","🇰🇲","#3a75c4","#fc0","AF"],
+  "178":["CG","CF","Congo","🇨🇬","#009543","#fbde4a","AF"],
+  "180":["CD","CG","Dem. Rep. Congo","🇨🇩","#007fff","#f7d618","AF"],
+  "188":["CR","CS","Costa Rica","🇨🇷","#ce1126","#002b7f","AM"],
+  "191":["HR","HR","Croatia","🇭🇷","#171796","#ff0000","EU"],
+  "192":["CU","CU","Cuba","🇨🇺","#002a8f","#cf142b","AM"],
+  "196":["CY","CY","Cyprus","🇨🇾","#d47600","#ffffff","EU"],
+  "203":["CZ","EZ","Czechia","🇨🇿","#11457e","#d7141a","EU"],
+  "204":["BJ","BN","Benin","🇧🇯","#008751","#fcd116","AF"],
+  "208":["DK","DA","Denmark","🇩🇰","#c60c30","#ffffff","EU"],
+  "214":["DO","DR","Dominican Rep.","🇩🇴","#002d62","#ce1126","AM"],
+  "218":["EC","EC","Ecuador","🇪🇨","#ffdd00","#0a3d91","AM"],
+  "222":["SV","ES","El Salvador","🇸🇻","#0047ab","#ffffff","AM"],
+  "226":["GQ","EK","Eq. Guinea","🇬🇶","#3e9a00","#e32118","AF"],
+  "231":["ET","ET","Ethiopia","🇪🇹","#078930","#fcdd09","AF"],
+  "232":["ER","ER","Eritrea","🇪🇷","#ea0437","#12ad2b","AF"],
+  "233":["EE","EN","Estonia","🇪🇪","#0072ce","#000000","EU"],
+  "242":["FJ","FJ","Fiji","🇫🇯","#68bfe5","#cf142b","OC"],
+  "246":["FI","FI","Finland","🇫🇮","#003580","#ffffff","EU"],
+  "250":["FR","FR","France","🇫🇷","#002654","#ed2939","EU"],
+  "262":["DJ","DJ","Djibouti","🇩🇯","#12ad2b","#d7141a","AF"],
+  "266":["GA","GB","Gabon","🇬🇦","#009e60","#fcd116","AF"],
+  "268":["GE","GG","Georgia","🇬🇪","#ff0000","#ffffff","AS"],
+  "270":["GM","GA","Gambia","🇬🇲","#ce1126","#0c1c8c","AF"],
+  "275":["PS","WE","Palestine","🇵🇸","#007a3d","#ce1126","AS"],
+  "276":["DE","GM","Germany","🇩🇪","#000000","#dd0000","EU"],
+  "288":["GH","GH","Ghana","🇬🇭","#ce1126","#fcd116","AF"],
+  "300":["GR","GR","Greece","🇬🇷","#0d5eaf","#ffffff","EU"],
+  "304":["GL","GL","Greenland","🇬🇱","#c8102e","#ffffff","AM"],
+  "320":["GT","GT","Guatemala","🇬🇹","#4997d0","#ffffff","AM"],
+  "324":["GN","GV","Guinea","🇬🇳","#ce1126","#009460","AF"],
+  "328":["GY","GY","Guyana","🇬🇾","#009e49","#ce1126","AM"],
+  "332":["HT","HA","Haiti","🇭🇹","#00209f","#d21034","AM"],
+  "340":["HN","HO","Honduras","🇭🇳","#0073cf","#ffffff","AM"],
+  "348":["HU","HU","Hungary","🇭🇺","#ce2939","#477050","EU"],
+  "352":["IS","IC","Iceland","🇮🇸","#02529c","#dc1e35","EU"],
+  "356":["IN","IN","India","🇮🇳","#ff9933","#138808","AS"],
+  "360":["ID","ID","Indonesia","🇮🇩","#ff0000","#ffffff","AS"],
+  "364":["IR","IR","Iran","🇮🇷","#239f40","#da0000","AS"],
+  "368":["IQ","IZ","Iraq","🇮🇶","#ce1126","#000000","AS"],
+  "372":["IE","EI","Ireland","🇮🇪","#169b62","#ff883e","EU"],
+  "376":["IL","IS","Israel","🇮🇱","#0038b8","#ffffff","AS"],
+  "380":["IT","IT","Italy","🇮🇹","#009246","#ce2b37","EU"],
+  "384":["CI","IV","Côte d'Ivoire","🇨🇮","#ff8200","#009e60","AF"],
+  "388":["JM","JM","Jamaica","🇯🇲","#009b3a","#fed100","AM"],
+  "392":["JP","JA","Japan","🇯🇵","#bc002d","#ffffff","AS"],
+  "398":["KZ","KZ","Kazakhstan","🇰🇿","#00afca","#fec50c","AS"],
+  "400":["JO","JO","Jordan","🇯🇴","#007a3d","#000000","AS"],
+  "404":["KE","KE","Kenya","🇰🇪","#006600","#bb0000","AF"],
+  "408":["KP","KN","North Korea","🇰🇵","#024fa2","#ed1c27","AS"],
+  "410":["KR","KS","South Korea","🇰🇷","#cd2e3a","#0047a0","AS"],
+  "414":["KW","KU","Kuwait","🇰🇼","#007a3d","#ce1126","AS"],
+  "417":["KG","KG","Kyrgyzstan","🇰🇬","#e8112d","#ffef00","AS"],
+  "418":["LA","LA","Laos","🇱🇦","#ce1126","#002868","AS"],
+  "422":["LB","LE","Lebanon","🇱🇧","#ed1c24","#00a650","AS"],
+  "426":["LS","LT","Lesotho","🇱🇸","#00209f","#009543","AF"],
+  "428":["LV","LG","Latvia","🇱🇻","#9e1b32","#ffffff","EU"],
+  "430":["LR","LI","Liberia","🇱🇷","#bf0a30","#002868","AF"],
+  "434":["LY","LY","Libya","🇱🇾","#239e46","#000000","AF"],
+  "438":["LI","LS","Liechtenstein","🇱🇮","#002b7f","#cf102c","EU"],
+  "440":["LT","LH","Lithuania","🇱🇹","#fdb913","#006a44","EU"],
+  "442":["LU","LU","Luxembourg","🇱🇺","#ed2939","#00a1de","EU"],
+  "450":["MG","MA","Madagascar","🇲🇬","#fc3d32","#007e3a","AF"],
+  "454":["MW","MI","Malawi","🇲🇼","#000000","#ce1126","AF"],
+  "458":["MY","MY","Malaysia","🇲🇾","#cc0000","#010066","AS"],
+  "462":["MV","MV","Maldives","🇲🇻","#d21034","#007e3a","AS"],
+  "466":["ML","ML","Mali","🇲🇱","#14b53a","#fcd116","AF"],
+  "470":["MT","MT","Malta","🇲🇹","#cf142b","#ffffff","EU"],
+  "478":["MR","MR","Mauritania","🇲🇷","#006233","#d01c1f","AF"],
+  "480":["MU","MP","Mauritius","🇲🇺","#ea2839","#1a206d","AF"],
+  "484":["MX","MX","Mexico","🇲🇽","#006847","#ce1126","AM"],
+  "492":["MC","MN","Monaco","🇲🇨","#ce1126","#ffffff","EU"],
+  "496":["MN","MG","Mongolia","🇲🇳","#c4272f","#015197","AS"],
+  "498":["MD","MD","Moldova","🇲🇩","#003da5","#ffd600","EU"],
+  "499":["ME","MJ","Montenegro","🇲🇪","#b30000","#d4af37","EU"],
+  "504":["MA","MO","Morocco","🇲🇦","#c1272d","#006233","AF"],
+  "508":["MZ","MZ","Mozambique","🇲🇿","#009a00","#000000","AF"],
+  "512":["OM","MU","Oman","🇴🇲","#db161b","#008000","AS"],
+  "516":["NA","WA","Namibia","🇳🇦","#003580","#d21034","AF"],
+  "524":["NP","NP","Nepal","🇳🇵","#dc143c","#003893","AS"],
+  "528":["NL","NL","Netherlands","🇳🇱","#ae1c28","#21468b","EU"],
+  "540":["NC","NC","New Caledonia","🇳🇨","#009543","#ed4135","OC"],
+  "548":["VU","NH","Vanuatu","🇻🇺","#ce1126","#009543","OC"],
+  "554":["NZ","NZ","New Zealand","🇳🇿","#012169","#cc142b","OC"],
+  "558":["NI","NU","Nicaragua","🇳🇮","#0067c6","#ffffff","AM"],
+  "562":["NE","NG","Niger","🇳🇪","#e05206","#0db02b","AF"],
+  "566":["NG","NI","Nigeria","🇳🇬","#008751","#ffffff","AF"],
+  "578":["NO","NO","Norway","🇳🇴","#ef2b2d","#002868","EU"],
+  "586":["PK","PK","Pakistan","🇵🇰","#01411c","#ffffff","AS"],
+  "591":["PA","PM","Panama","🇵🇦","#da121a","#005293","AM"],
+  "598":["PG","PP","Papua New Guinea","🇵🇬","#ce1126","#fcd116","OC"],
+  "600":["PY","PA","Paraguay","🇵🇾","#d52b1e","#0038a8","AM"],
+  "604":["PE","PE","Peru","🇵🇪","#d91023","#ffffff","AM"],
+  "608":["PH","RP","Philippines","🇵🇭","#0038a8","#ce1126","AS"],
+  "616":["PL","PL","Poland","🇵🇱","#dc143c","#ffffff","EU"],
+  "620":["PT","PO","Portugal","🇵🇹","#006600","#ff0000","EU"],
+  "624":["GW","PU","Guinea-Bissau","🇬🇼","#ce1126","#fcd116","AF"],
+  "626":["TL","TT","Timor-Leste","🇹🇱","#dc241f","#ffc726","AS"],
+  "630":["PR","RQ","Puerto Rico","🇵🇷","#ed0000","#0050f0","AM"],
+  "634":["QA","QA","Qatar","🇶🇦","#8d1b3d","#ffffff","AS"],
+  "642":["RO","RO","Romania","🇷🇴","#002b7f","#fcd116","EU"],
+  "643":["RU","RS","Russia","🇷🇺","#0039a6","#d52b1e","EU"],
+  "646":["RW","RW","Rwanda","🇷🇼","#00a1de","#fad201","AF"],
+  "682":["SA","SA","Saudi Arabia","🇸🇦","#006c35","#ffffff","AS"],
+  "686":["SN","SG","Senegal","🇸🇳","#00853f","#fdef42","AF"],
+  "688":["RS","RI","Serbia","🇷🇸","#c6363c","#0c4076","EU"],
+  "694":["SL","SL","Sierra Leone","🇸🇱","#1eb53a","#0072c6","AF"],
+  "702":["SG","SN","Singapore","🇸🇬","#ef3340","#ffffff","AS"],
+  "703":["SK","LO","Slovakia","🇸🇰","#0b4ea2","#ee1c25","EU"],
+  "704":["VN","VM","Vietnam","🇻🇳","#da251d","#ffff00","AS"],
+  "705":["SI","SI","Slovenia","🇸🇮","#005ce6","#e03c31","EU"],
+  "706":["SO","SO","Somalia","🇸🇴","#4189dd","#ffffff","AF"],
+  "710":["ZA","SF","South Africa","🇿🇦","#007749","#ffb612","AF"],
+  "716":["ZW","ZI","Zimbabwe","🇿🇼","#006400","#ffd200","AF"],
+  "724":["ES","SP","Spain","🇪🇸","#aa151b","#f1bf00","EU"],
+  "728":["SS","OD","South Sudan","🇸🇸","#078930","#da121a","AF"],
+  "729":["SD","SU","Sudan","🇸🇩","#d21034","#000000","AF"],
+  "740":["SR","NS","Suriname","🇸🇷","#b40a2d","#377e3f","AM"],
+  "748":["SZ","WZ","Eswatini","🇸🇿","#3e5eb9","#ffd900","AF"],
+  "752":["SE","SW","Sweden","🇸🇪","#006aa7","#fecc00","EU"],
+  "756":["CH","SZ","Switzerland","🇨🇭","#ff0000","#ffffff","EU"],
+  "760":["SY","SY","Syria","🇸🇾","#ce1126","#000000","AS"],
+  "762":["TJ","TI","Tajikistan","🇹🇯","#cc0000","#006600","AS"],
+  "764":["TH","TH","Thailand","🇹🇭","#a51931","#2d2a4a","AS"],
+  "768":["TG","TO","Togo","🇹🇬","#ffce00","#006a4e","AF"],
+  "776":["TO","TN","Tonga","🇹🇴","#c10000","#ffffff","OC"],
+  "780":["TT","TD","Trinidad and Tobago","🇹🇹","#ce1126","#000000","AM"],
+  "784":["AE","AE","UAE","🇦🇪","#ef3340","#00732f","AS"],
+  "788":["TN","TS","Tunisia","🇹🇳","#e70013","#ffffff","AF"],
+  "792":["TR","TU","Turkey","🇹🇷","#e30a17","#ffffff","EU"],
+  "795":["TM","TX","Turkmenistan","🇹🇲","#00843d","#cc0000","AS"],
+  "800":["UG","UG","Uganda","🇺🇬","#fcdc04","#d90000","AF"],
+  "804":["UA","UP","Ukraine","🇺🇦","#005bbb","#ffd500","EU"],
+  "807":["MK","MK","North Macedonia","🇲🇰","#d20000","#ffe600","EU"],
+  "818":["EG","EG","Egypt","🇪🇬","#ce1126","#000000","AF"],
+  "826":["GB","UK","United Kingdom","🇬🇧","#c8102e","#012169","EU"],
+  "834":["TZ","TZ","Tanzania","🇹🇿","#1eb53a","#fcd116","AF"],
+  "840":["US","US","United States","🇺🇸","#b22234","#3c3b6e","AM"],
+  "854":["BF","UV","Burkina Faso","🇧🇫","#ef2b2d","#009e49","AF"],
+  "858":["UY","UY","Uruguay","🇺🇾","#0038a8","#ffffff","AM"],
+  "860":["UZ","UZ","Uzbekistan","🇺🇿","#1eb53a","#0099b5","AS"],
+  "862":["VE","VE","Venezuela","🇻🇪","#ffd71b","#003893","AM"],
+  "887":["YE","YM","Yemen","🇾🇪","#cf0921","#000000","AS"],
+  "894":["ZM","ZA","Zambia","🇿🇲","#198a00","#ef7d00","AF"],
+};
+
+/* ================================================================
+ * STATE
+ * ================================================================ */
+const state={
+  selected:null,
+  continentFilter:'',
+  langFilter:'',
+  newsCache:{},
+  topCache:{},
+  searchIdx:-1,
+};
+
+const CACHE_TTL=10*60*1000;
+const GDELT_BASE='https://api.gdeltproject.org/api/v2/doc/doc';
+
+/* ================================================================
+ * UTILITIES
+ * ================================================================ */
+function getMeta(numericId){
+  const d=COUNTRIES[numericId];
+  if(!d)return null;
+  return{alpha2:d[0],fips:d[1]||d[0],name:d[2],flag:d[3],c1:d[4],c2:d[5],continent:d[6]};
+}
+function fipsFor(numericId){const d=COUNTRIES[numericId];return d?(d[1]||d[0]):null}
+function parseGDELTDate(s){
+  const m=s&&s.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
+  if(!m)return new Date();
+  return new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6]));
+}
+function timeAgo(d){
+  const s=Math.floor((Date.now()-d.getTime())/1000);
+  if(s<60)return s+'s ago';
+  if(s<3600)return Math.floor(s/60)+'m ago';
+  if(s<86400)return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
+}
+function langCode(l){
+  const map={English:'EN',Spanish:'ES',French:'FR',German:'DE',Russian:'RU',Chinese:'ZH',Japanese:'JA',Arabic:'AR',Portuguese:'PT',Italian:'IT',Dutch:'NL',Korean:'KO',Turkish:'TR',Polish:'PL',Persian:'FA',Hebrew:'HE',Thai:'TH',Vietnamese:'VI',Swedish:'SV',Hindi:'HI',Indonesian:'ID',Greek:'EL',Czech:'CS',Ukrainian:'UK',Romanian:'RO',Hungarian:'HU',Finnish:'FI',Danish:'DA',Norwegian:'NO'};
+  return map[l]||(l?l.slice(0,2).toUpperCase():'');
+}
+
+/* ================================================================
+ * GDELT FETCH
+ * ================================================================ */
+async function fetchNews(fips,max,extraQuery){
+  const key=`${fips}|${max}|${extraQuery||''}`;
+  const c=state.newsCache[key];
+  if(c&&(Date.now()-c.time)<CACHE_TTL)return c.data;
+  const base=`sourcecountry:${fips}`;
+  const lang=state.langFilter?` sourcelang:${state.langFilter}`:'';
+  const q=base+lang+(extraQuery||'');
+  const url=`${GDELT_BASE}?query=${encodeURIComponent(q)}&mode=ArtList&format=json&maxrecords=${max}&sort=DateDesc&timespan=2days`;
+  try{
+    const ac=new AbortController(),t=setTimeout(()=>ac.abort(),14000);
+    const r=await fetch(url,{signal:ac.signal,cache:'no-store'});
+    clearTimeout(t);
+    if(!r.ok)throw new Error('status '+r.status);
+    const text=await r.text();
+    let d;try{d=JSON.parse(text)}catch(e){d={articles:[]}}
+    const articles=(d.articles||[]).filter(a=>a&&a.url&&a.title);
+    const seen=new Set(),unique=[];
+    for(const a of articles){
+      const k=a.url;if(seen.has(k))continue;seen.add(k);unique.push(a);
+    }
+    state.newsCache[key]={data:unique,time:Date.now()};
+    return unique;
+  }catch(e){return[]}
+}
+
+async function fetchTop(fips){
+  const key=fips+'|'+state.langFilter;
+  const c=state.topCache[key];
+  if(c&&(Date.now()-c.time)<CACHE_TTL)return c.data;
+  const arts=await fetchNews(fips,1);
+  const data=arts[0]||null;
+  state.topCache[key]={data,time:Date.now()};
+  return data;
+}
+
+/* ================================================================
+ * MAP SETUP
+ * ================================================================ */
+const mapSvg=d3.select('#map');
+const g=mapSvg.append('g');
+const projection=d3.geoNaturalEarth1();
+const path=d3.geoPath(projection);
+let worldData=null;
+let currentTransform=d3.zoomIdentity;
+
+const zoom=d3.zoom().scaleExtent([0.8,12]).on('zoom',ev=>{
+  currentTransform=ev.transform;
+  g.attr('transform',ev.transform);
+  g.selectAll('.country').attr('stroke-width',0.5/ev.transform.k);
+});
+mapSvg.call(zoom);
+
+function resizeMap(){
+  const m=document.querySelector('.main');
+  const w=m.clientWidth,h=m.clientHeight;
+  mapSvg.attr('viewBox',`0 0 ${w} ${h}`).attr('width',w).attr('height',h);
+  projection.fitSize([w-20,h-40],{type:'Sphere'});
+  if(worldData)g.selectAll('.country').attr('d',path);
+}
+window.addEventListener('resize',resizeMap);
+
+async function loadMap(){
+  setStatus('loading','Loading map…');
+  try{
+    const r=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+    if(!r.ok)throw new Error('map fetch');
+    worldData=await r.json();
+    const countries=topojson.feature(worldData,worldData.objects.countries).features;
+    resizeMap();
+    g.selectAll('.country').data(countries).enter().append('path')
+      .attr('class','country').attr('d',path)
+      .attr('data-id',d=>d.id)
+      .attr('data-name',d=>d.properties.name)
+      .on('mouseenter',onHover).on('mousemove',onMove).on('mouseleave',onLeave)
+      .on('click',onClick);
+    setStatus('ok','Map ready · '+countries.length+' countries');
+    fetchTrending();
+  }catch(e){setStatus('err','Failed to load map');console.error(e)}
+}
+
+/* ================================================================
+ * MAP EVENTS
+ * ================================================================ */
+let hoverTimer=null,lastHoverId=null;
+const tooltip=document.getElementById('tooltip');
+
+function onHover(ev,d){
+  const id=d.id,meta=getMeta(id);
+  const name=(meta&&meta.name)||d.properties.name;
+  const flag=(meta&&meta.flag)||'🌐';
+  tooltip.innerHTML=`<div class="tt-header"><span class="tt-flag">${flag}</span><span class="tt-name">${name}</span></div><div class="tt-loading"><span class="spin"></span>Loading headline…</div><div class="tt-hint">Click to explore news from ${name}</div>`;
+  tooltip.classList.add('show');
+  positionTooltip(ev);
+  if(hoverTimer)clearTimeout(hoverTimer);
+  lastHoverId=id;
+  if(!meta||!meta.fips){
+    tooltip.querySelector('.tt-loading').innerHTML='<span style="color:var(--text4)">No data available</span>';
+    return;
+  }
+  hoverTimer=setTimeout(async()=>{
+    if(lastHoverId!==id)return;
+    const top=await fetchTop(meta.fips);
+    if(lastHoverId!==id)return;
+    if(!top){
+      const loader=tooltip.querySelector('.tt-loading');
+      if(loader)loader.innerHTML='<span style="color:var(--text4)">No recent news</span>';
+      return;
+    }
+    const d2=parseGDELTDate(top.seendate);
+    const loader=tooltip.querySelector('.tt-loading');
+    if(loader){
+      loader.outerHTML=`<div class="tt-headline">${escapeHtml(top.title)}</div><div class="tt-source">${escapeHtml(top.domain||'')} · ${timeAgo(d2)} · ${langCode(top.language)}</div>`;
+    }
+  },320);
+}
+
+function onMove(ev){positionTooltip(ev)}
+function onLeave(){tooltip.classList.remove('show');lastHoverId=null;if(hoverTimer)clearTimeout(hoverTimer)}
+
+function positionTooltip(ev){
+  const x=ev.clientX,y=ev.clientY;
+  const w=tooltip.offsetWidth||280,h=tooltip.offsetHeight||80;
+  let tx=x+14,ty=y+14;
+  if(tx+w>window.innerWidth-10)tx=x-w-14;
+  if(ty+h>window.innerHeight-10)ty=y-h-14;
+  tooltip.style.left=tx+'px';tooltip.style.top=ty+'px';
+}
+
+function onClick(ev,d){
+  selectCountry(d);
+}
+
+function escapeHtml(s){return(s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+/* ================================================================
+ * SELECTION & ZOOM
+ * ================================================================ */
+function selectCountry(d){
+  const id=d.id,meta=getMeta(id);
+  state.selected=id;
+  g.selectAll('.country').classed('selected',n=>n.id===id).classed('dim',n=>n.id!==id);
+  if(meta){
+    g.selectAll('.country').filter(n=>n.id===id)
+      .attr('fill',meta.c1).attr('color',meta.c1);
+  }
+  zoomToCountry(d);
+  openPanel(id,d);
+  tooltip.classList.remove('show');
+}
+
+function zoomToCountry(d){
+  const[[x0,y0],[x1,y1]]=path.bounds(d);
+  const w=mapSvg.attr('width'),h=mapSvg.attr('height');
+  const dx=x1-x0,dy=y1-y0,cx=(x0+x1)/2,cy=(y0+y1)/2;
+  const scale=Math.min(8,0.7/Math.max(dx/w,dy/h));
+  const panelW=window.innerWidth>768?440:0;
+  const availW=w-panelW;
+  const tx=availW/2-scale*cx,ty=h/2-scale*cy;
+  mapSvg.transition().duration(900).call(zoom.transform,d3.zoomIdentity.translate(tx,ty).scale(scale));
+}
+
+function resetMap(){
+  state.selected=null;
+  g.selectAll('.country').classed('selected',false).classed('dim',false).attr('fill',null);
+  mapSvg.transition().duration(700).call(zoom.transform,d3.zoomIdentity);
+  closePanel();
+}
+
+/* ================================================================
+ * PANEL
+ * ================================================================ */
+const panel=document.getElementById('panel');
+const panelBody=document.getElementById('panelBody');
+
+async function openPanel(id,d){
+  const meta=getMeta(id);
+  const name=(meta&&meta.name)||d.properties.name;
+  const flag=(meta&&meta.flag)||'🌐';
+  const c1=(meta&&meta.c1)||'#836ef9';
+  const c2=(meta&&meta.c2)||'#5a45c9';
+  panel.style.setProperty('--panel-c1',c1);
+  panel.style.setProperty('--panel-c2',c2);
+  document.getElementById('panelFlag').textContent=flag;
+  document.getElementById('panelName').textContent=name;
+  document.getElementById('panelMeta').textContent='Top stories from '+name+' sources';
+  document.getElementById('statCount').textContent='—';
+  document.getElementById('statSources').textContent='—';
+  panelBody.innerHTML='<div class="panel-loading"><span class="spin"></span>Fetching news…</div>';
+  panel.classList.add('open');
+  if(!meta||!meta.fips){
+    panelBody.innerHTML='<div class="panel-empty"><span class="em">🚫</span>No news data available<br>for this region.</div>';
+    return;
+  }
+  const articles=await fetchNews(meta.fips,20);
+  renderArticles(articles,name);
+}
+
+function renderArticles(articles,name){
+  if(!articles.length){
+    panelBody.innerHTML=`<div class="panel-empty"><span class="em">📭</span>No recent news indexed${state.langFilter==='eng'?' in English':''} from ${escapeHtml(name)} in the last 48 hours.<br><br><span style="font-size:11px;color:var(--text4)">Try removing the English filter or check back later.</span></div>`;
+    return;
+  }
+  document.getElementById('statCount').textContent=articles.length;
+  const sources=new Set(articles.map(a=>a.domain)).size;
+  document.getElementById('statSources').textContent=sources;
+  panelBody.innerHTML=articles.map(a=>{
+    const date=parseGDELTDate(a.seendate);
+    const img=a.socialimage?`<div class="art-img" style="background-image:url('${escapeHtml(a.socialimage)}')"></div>`:'';
+    return`<a class="article" href="${escapeHtml(a.url)}" target="_blank" rel="noopener">${img}<div class="art-title">${escapeHtml(a.title)}</div><div class="art-meta"><span class="art-source">${escapeHtml(a.domain||'')}</span><span class="art-lang">${langCode(a.language)}</span><span class="art-date">${timeAgo(date)}</span></div><span class="art-ext">↗</span></a>`;
+  }).join('');
+}
+
+function closePanel(){
+  panel.classList.remove('open');
+  state.selected=null;
+  g.selectAll('.country').classed('selected',false).classed('dim',false).attr('fill',null);
+}
+
+/* ================================================================
+ * TRENDING
+ * ================================================================ */
+async function fetchTrending(){
+  try{
+    const ac=new AbortController(),t=setTimeout(()=>ac.abort(),12000);
+    const lang=state.langFilter||'eng';
+    const url=`${GDELT_BASE}?query=${encodeURIComponent('sourcelang:'+lang)}&mode=ArtList&format=json&maxrecords=1&sort=DateDesc&timespan=2h`;
+    const r=await fetch(url,{signal:ac.signal,cache:'no-store'});
+    clearTimeout(t);
+    const d=await r.json();
+    const a=(d.articles||[])[0];
+    if(a){showTrending(a)}else{showTrendingFallback()}
+  }catch(e){showTrendingFallback()}
+}
+function showTrending(a){
+  const date=parseGDELTDate(a.seendate);
+  document.getElementById('trendingTitle').textContent=a.title;
+  document.getElementById('trendingMeta').textContent=(a.domain||'')+' · '+timeAgo(date);
+  document.getElementById('trending').onclick=()=>window.open(a.url,'_blank','noopener');
+  document.getElementById('trending').style.cursor='pointer';
+}
+function showTrendingFallback(){
+  document.getElementById('trendingTitle').textContent='Hover over any country to see its top story';
+  document.getElementById('trendingMeta').textContent=Object.keys(COUNTRIES).length+' countries · Live news feed';
+}
+
+/* ================================================================
+ * SEARCH
+ * ================================================================ */
+const searchInput=document.getElementById('searchInput');
+const searchResults=document.getElementById('searchResults');
+
+function runSearch(q){
+  q=q.trim().toLowerCase();
+  if(!q){searchResults.classList.remove('open');return}
+  const matches=[];
+  for(const[id,d]of Object.entries(COUNTRIES)){
+    const name=d[2].toLowerCase(),alpha=d[0].toLowerCase();
+    if(name.startsWith(q)||alpha===q||name.includes(q)){
+      matches.push({id,alpha2:d[0],name:d[2],flag:d[3],score:name.startsWith(q)?0:(alpha===q?1:2)});
+    }
+    if(matches.length>=50)break;
+  }
+  matches.sort((a,b)=>a.score-b.score||a.name.localeCompare(b.name));
+  const top=matches.slice(0,8);
+  if(!top.length){searchResults.innerHTML='<div class="search-result" style="color:var(--text4);cursor:default">No matches</div>';searchResults.classList.add('open');return}
+  searchResults.innerHTML=top.map((m,i)=>`<div class="search-result${i===0?' hl':''}" data-id="${m.id}"><span class="search-flag">${m.flag}</span><span>${m.name}</span></div>`).join('');
+  searchResults.classList.add('open');
+  state.searchIdx=0;
+  searchResults.querySelectorAll('.search-result').forEach(el=>{
+    el.addEventListener('click',()=>{pickSearchResult(el.dataset.id);});
+  });
+}
+
+function pickSearchResult(id){
+  searchResults.classList.remove('open');
+  searchInput.value='';
+  const path=g.selectAll('.country').filter(n=>n.id===id);
+  if(!path.empty())selectCountry(path.datum());
+}
+
+searchInput.addEventListener('input',e=>runSearch(e.target.value));
+searchInput.addEventListener('keydown',e=>{
+  const items=searchResults.querySelectorAll('.search-result');
+  if(e.key==='Enter'){
+    const hl=searchResults.querySelector('.search-result.hl');
+    if(hl&&hl.dataset.id)pickSearchResult(hl.dataset.id);
+  }else if(e.key==='ArrowDown'&&items.length){
+    e.preventDefault();
+    state.searchIdx=Math.min(state.searchIdx+1,items.length-1);
+    items.forEach((el,i)=>el.classList.toggle('hl',i===state.searchIdx));
+  }else if(e.key==='ArrowUp'&&items.length){
+    e.preventDefault();
+    state.searchIdx=Math.max(state.searchIdx-1,0);
+    items.forEach((el,i)=>el.classList.toggle('hl',i===state.searchIdx));
+  }else if(e.key==='Escape'){
+    searchInput.blur();searchResults.classList.remove('open');
+  }
+});
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.search'))searchResults.classList.remove('open');
+});
+
+/* ================================================================
+ * FILTERS
+ * ================================================================ */
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on');
+  state.continentFilter=c.dataset.continent;
+  applyFilters();
+}));
+document.querySelectorAll('.lang-btn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.lang-btn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  state.langFilter=b.dataset.lang;
+  state.newsCache={};state.topCache={};
+  if(state.selected){
+    const path=g.selectAll('.country').filter(n=>n.id===state.selected);
+    if(!path.empty())openPanel(state.selected,path.datum());
+  }
+  fetchTrending();
+}));
+
+function applyFilters(){
+  const f=state.continentFilter;
+  g.selectAll('.country').style('opacity',d=>{
+    if(!f)return 1;
+    const m=getMeta(d.id);
+    return(m&&m.continent===f)?1:0.2;
+  });
+}
+
+/* ================================================================
+ * CONTROLS
+ * ================================================================ */
+document.getElementById('zoomIn').onclick=()=>mapSvg.transition().duration(300).call(zoom.scaleBy,1.5);
+document.getElementById('zoomOut').onclick=()=>mapSvg.transition().duration(300).call(zoom.scaleBy,0.67);
+document.getElementById('zoomReset').onclick=resetMap;
+
+/* ================================================================
+ * KEYBOARD
+ * ================================================================ */
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(searchResults.classList.contains('open')){searchResults.classList.remove('open');return}
+    if(state.selected)resetMap();
+  }else if(e.key==='/'&&document.activeElement!==searchInput){
+    e.preventDefault();searchInput.focus();
+  }
+});
+
+/* ================================================================
+ * STATUS
+ * ================================================================ */
+function setStatus(cls,text){
+  const s=document.getElementById('status');
+  s.className='status '+cls;
+  document.getElementById('statusText').textContent=text;
+}
+
+/* ================================================================
+ * INIT
+ * ================================================================ */
+loadMap();
+setInterval(fetchTrending,300000);
+</script>
+</body>
+</html>
