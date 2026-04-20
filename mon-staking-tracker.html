@@ -725,14 +725,28 @@ async function gtOHLCV(timeframe,limit){
 
 const HIST_SOURCES=[
   {
-    name:'geckoterminal',
-    fetch:async()=>gtOHLCV('day',365)
+    name:'geckoterminal-merged',
+    fetch:async()=>{
+      const [hr,dy]=await Promise.allSettled([gtOHLCV('hour',1000),gtOHLCV('day',365)]);
+      const h=hr.status==='fulfilled'?hr.value:[];
+      const d=dy.status==='fulfilled'?dy.value:[];
+      if(!h.length&&!d.length)throw new Error('no hist data');
+      const hStart=h.length?h[0][0]:Infinity;
+      return [...d.filter(p=>p[0]<hStart),...h].sort((a,b)=>a[0]-b[0]);
+    }
   },
   {
-    name:'coingecko',
+    name:'coingecko-merged',
     fetch:async()=>{
-      const d=await smartFetch('https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=365&interval=daily');
-      return d.prices||[];
+      const [r,o]=await Promise.allSettled([
+        smartFetch('https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=90'),
+        smartFetch('https://api.coingecko.com/api/v3/coins/monad/market_chart?vs_currency=usd&days=365&interval=daily')
+      ]);
+      const rp=r.status==='fulfilled'?(r.value.prices||[]):[];
+      const op=o.status==='fulfilled'?(o.value.prices||[]):[];
+      if(!rp.length&&!op.length)return [];
+      const rStart=rp.length?rp[0][0]:Infinity;
+      return [...op.filter(p=>p[0]<rStart),...rp].sort((a,b)=>a[0]-b[0]);
     }
   }
 ];
