@@ -236,7 +236,7 @@ async function loadFiles() {
   const countEl = document.getElementById('fileCount');
 
   try {
-    const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents?ref=${BRANCH}`);
+    const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents?ref=${BRANCH}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
     const files = await res.json();
 
