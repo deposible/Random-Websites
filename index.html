@@ -219,19 +219,18 @@ body::after{
 </div>
 
 <div class="footer">
-  <a href="https://github.com/deposible/Random-Websites-Ive-Created-w-AI" target="_blank">View on GitHub ↗</a>
+  <a href="https://github.com/deposible/Random-Websites" target="_blank">View on GitHub ↗</a>
   <span>auto-indexed from repo</span>
 </div>
 
 <script>
 const REPO_OWNER = 'deposible';
-const REPO_NAME = 'Random-Websites';
-const BRANCH = 'main';
+const REPO_NAME  = 'Random-Websites';
+const BRANCH     = 'main';
 
-// GitHub Pages base URL (update if using custom domain)
+// GitHub Pages base URL (update if using a custom domain)
 const PAGES_BASE = `https://${REPO_OWNER}.github.io/${REPO_NAME}/`;
 
-// Fetch HTML files from repo via GitHub API (no auth needed for public repos)
 async function loadFiles() {
   const grid = document.getElementById('grid');
   const countEl = document.getElementById('fileCount');
@@ -241,32 +240,36 @@ async function loadFiles() {
     if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
     const files = await res.json();
 
-    // Filter for .html files, exclude index.html itself
-    const htmlFiles = files
-      .filter(f => f.name.endsWith('.html') && f.name.toLowerCase() !== 'index.html')
+    // Index top-level .html files (except this index) AND project folders.
+    const items = files
+      .filter(f =>
+        (f.type === 'file' && f.name.toLowerCase().endsWith('.html') && f.name.toLowerCase() !== 'index.html') ||
+        (f.type === 'dir' && !f.name.startsWith('.'))
+      )
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    if (htmlFiles.length === 0) {
-      grid.innerHTML = `<div class="empty">No HTML files found yet. Push some to the repo!</div>`;
-      countEl.textContent = '0 files';
+    if (items.length === 0) {
+      grid.innerHTML = `<div class="empty">No projects found yet. Push some HTML files or folders to the repo!</div>`;
+      countEl.textContent = '0 projects';
       return;
     }
 
-    countEl.textContent = `${htmlFiles.length} file${htmlFiles.length > 1 ? 's' : ''}`;
+    countEl.textContent = `${items.length} project${items.length > 1 ? 's' : ''}`;
 
-    grid.innerHTML = htmlFiles.map((f, i) => {
-      const displayName = f.name
-        .replace('.html', '')
+    grid.innerHTML = items.map((f, i) => {
+      const isDir = f.type === 'dir';
+      const displayName = (isDir ? f.name : f.name.replace(/\.html$/i, ''))
         .replace(/[-_]/g, ' ')
         .replace(/\b\w/g, c => c.toUpperCase());
 
-      const url = PAGES_BASE + encodeURIComponent(f.name);
+      // folder -> link to folder/ (serves its index.html); file -> link to the file
+      const url = PAGES_BASE + encodeURIComponent(f.name) + (isDir ? '/' : '');
 
       return `
         <a class="card" href="${url}" style="animation-delay:${0.4 + i * 0.06}s">
           <div class="card-idx">${String(i + 1).padStart(2, '0')}</div>
           <div class="card-name">${displayName}</div>
-          <div class="card-file">${f.name}</div>
+          <div class="card-file">${f.name}${isDir ? '/' : ''}</div>
           <div class="card-arrow">
             <span>Launch</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
