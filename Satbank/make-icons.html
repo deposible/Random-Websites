@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Generate PNG icons</title>
+<style>
+  body { font: 15px system-ui, sans-serif; background:#0b0e14; color:#eef1f6; max-width:640px; margin:40px auto; padding:0 16px; }
+  a.btn { display:inline-block; background:#f7931a; color:#1a1206; font-weight:700; text-decoration:none;
+          padding:10px 14px; border-radius:10px; margin:6px 8px 6px 0; }
+  canvas { background:#161c28; border:1px solid #29303f; border-radius:12px; margin:8px 8px 0 0; vertical-align:top; }
+  code { background:#161c28; padding:2px 6px; border-radius:6px; }
+</style>
+</head>
+<body>
+<h1>PNG icon generator</h1>
+<p>The app already works with <code>icon.svg</code>. For the crispest iOS / Android
+home-screen icons, generate PNGs here, then save them into an <code>icons/</code>
+folder next to <code>index.html</code> (filenames are pre-set in the download links).</p>
+
+<div id="out"></div>
+
+<script>
+const SVG_URL = 'icon.svg';
+const jobs = [
+  { name: 'icons/icon-192.png', size: 192, pad: 0 },
+  { name: 'icons/icon-512.png', size: 512, pad: 0 },
+  { name: 'icons/icon-512-maskable.png', size: 512, pad: 0.12 }, // safe-zone padding
+];
+
+const img = new Image();
+img.crossOrigin = 'anonymous';
+img.onload = () => {
+  const out = document.getElementById('out');
+  for (const job of jobs) {
+    const c = document.createElement('canvas');
+    c.width = c.height = job.size;
+    const ctx = c.getContext('2d');
+    // background to match the icon corners on maskable
+    ctx.fillStyle = '#f7931a';
+    ctx.fillRect(0, 0, job.size, job.size);
+    const p = Math.round(job.size * job.pad);
+    ctx.drawImage(img, p, p, job.size - 2 * p, job.size - 2 * p);
+
+    const wrap = document.createElement('div');
+    wrap.style.display = 'inline-block';
+    const a = document.createElement('a');
+    a.className = 'btn';
+    a.textContent = 'Download ' + job.name.split('/').pop();
+    a.href = c.toDataURL('image/png');
+    a.download = job.name.split('/').pop();
+    wrap.appendChild(c);
+    wrap.appendChild(document.createElement('br'));
+    wrap.appendChild(a);
+    out.appendChild(wrap);
+  }
+};
+img.onerror = () => document.getElementById('out').textContent =
+  'Could not load icon.svg — open this page from the same folder via a local server.';
+img.src = SVG_URL;
+</script>
+</body>
+</html>
