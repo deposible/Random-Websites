@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>USD Strength Tracker — World Currencies + Bitcoin</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2430; --border:#2a3441;
+    --text:#e6edf3; --muted:#8b97a7; --accent:#3b82f6; --green:#16c784; --red:#ea3943;
+  }
+  [data-theme="light"]{
+    --bg:#f6f8fa; --panel:#ffffff; --panel2:#eef1f5; --border:#d6dde5;
+    --text:#1f2937; --muted:#5b6675; --accent:#2563eb; --green:#0a9d63; --red:#d12b39;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);transition:background .2s,color .2s;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px;}
+  h1{margin:0;font-size:20px;font-weight:650;}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px;}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 24px 60px;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:18px;}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+  .row + .row{margin-top:12px;}
+  .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:6px;}
+  button.tf,button.mode{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    padding:7px 13px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:.15s;}
+  button.tf:hover,button.mode:hover{border-color:var(--accent);}
+  button.tf.active,button.mode.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  select{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    padding:7px 10px;border-radius:8px;font-size:13px;cursor:pointer;}
+  input#search{flex:1;min-width:220px;background:var(--panel2);border:1px solid var(--border);
+    color:var(--text);padding:8px 12px;border-radius:8px;font-size:13px;}
+  input#search::placeholder{color:var(--muted);}
+  input#housePrice{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    padding:8px 12px;border-radius:8px;font-size:14px;font-weight:600;width:150px;}
+  .picker{display:flex;flex-wrap:wrap;gap:6px;max-height:240px;overflow-y:auto;padding:10px;
+    background:var(--panel2);border:1px solid var(--border);border-radius:10px;margin-top:4px;}
+  .pick{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:5px 9px;
+    border-radius:7px;cursor:pointer;font-size:12px;white-space:nowrap;transition:.1s;}
+  .pick:hover{border-color:var(--accent);}
+  .pick.sel{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .pickcount{font-size:11px;color:var(--muted);margin-left:auto;align-self:center;}
+  .iconbtn{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;}
+  .iconbtn:hover{border-color:var(--accent);}
+  button.idx{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    padding:7px 13px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;}
+  button.idx:hover{border-color:var(--accent);}
+  button.idx.active{background:var(--green);border-color:var(--green);color:#fff;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--border);
+    border-radius:20px;padding:5px 7px 5px 12px;font-size:13px;font-weight:600;}
+  .chip .dot{width:10px;height:10px;border-radius:50%;}
+  .chip .x{cursor:pointer;color:var(--muted);font-size:16px;line-height:1;padding:0 4px;border-radius:50%;}
+  .chip .x:hover{color:var(--red);}
+  .chartbox{position:relative;height:440px;}
+  #status{font-size:13px;color:var(--muted);margin-top:8px;min-height:18px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{text-align:right;padding:9px 12px;border-bottom:1px solid var(--border);}
+  th:first-child,td:first-child{text-align:left;}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+  .pos{color:var(--green);font-weight:600;} .neg{color:var(--red);font-weight:600;}
+  .arrow{font-size:11px;}
+  h2{font-size:15px;margin:0 0 12px;}
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;}
+  .scard{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px;}
+  .scard .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .scard .v{font-size:22px;font-weight:700;margin-top:6px;}
+  .scard .d{font-size:12px;color:var(--muted);margin-top:4px;}
+  .info a{color:var(--accent);text-decoration:none;} .info a:hover{text-decoration:underline;}
+  .info li{margin:7px 0;line-height:1.5;font-size:13.5px;}
+  .info .note{background:var(--panel2);border-left:3px solid var(--accent);padding:10px 14px;border-radius:6px;color:var(--muted);font-size:12.5px;margin-bottom:14px;}
+  .hint{color:var(--muted);font-size:12px;}
+  .tablewrap{max-height:420px;overflow-y:auto;}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>💱 USD Strength Tracker</h1>
+    <div class="sub">Every world currency by country + Bitcoin. Line up = USD stronger · line down = USD weaker.</div>
+  </div>
+  <button class="iconbtn" id="themeBtn">🌙 Dark</button>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+    <div class="row">
+      <span class="label">Timeframe</span>
+      <div id="tfBtns" class="row" style="gap:6px;"></div>
+    </div>
+    <div class="row">
+      <span class="label">View</span>
+      <button class="mode active" data-mode="pct">% change (compare)</button>
+      <button class="mode" data-mode="abs">Absolute rate</button>
+      <span style="flex:1"></span>
+      <span class="label">Base</span>
+      <select id="baseSel"></select>
+    </div>
+    <div class="row">
+      <input id="search" placeholder="🔍 Search currencies by name or code…" />
+      <button class="iconbtn" id="allBtn">Select all</button>
+      <button class="iconbtn" id="clearBtn">Clear</button>
+      <span class="pickcount" id="pickCount"></span>
+    </div>
+    <div id="picker" class="picker"></div>
+    <div class="row" style="margin-top:10px;">
+      <span class="label">Selected</span>
+      <div id="chips" class="chips"></div>
+    </div>
+    <div class="row">
+      <span style="flex:1"></span>
+      <button class="idx" id="idxBtn" title="Computed DXY-style trade-weighted dollar index">＄ USD Index</button>
+      <button class="iconbtn" id="csvBtn">⬇ Export CSV</button>
+    </div>
+    <div class="row"><span class="hint" id="modeHint"></span></div>
+  </div>
+
+  <div class="panel">
+    <div class="chartbox"><canvas id="chart"></canvas></div>
+    <div id="status">Loading…</div>
+  </div>
+
+  <div class="panel">
+    <h2>📊 Overall summary</h2>
+    <div id="overall" class="summary"></div>
+  </div>
+
+  <div class="panel">
+    <h2>🏠 House priced in Bitcoin <span class="hint">— all-time</span></h2>
+    <div class="row" style="margin-bottom:12px;">
+      <span class="label">House price (USD)</span>
+      <input id="housePrice" type="number" value="450000" step="10000" min="1" />
+      <span class="hint">How many bitcoin it takes to buy this house — a fixed-price house gets “cheaper” in BTC as Bitcoin rises.</span>
+    </div>
+    <div id="houseCards" class="summary"></div>
+    <div class="chartbox" style="height:300px;margin-top:14px;"><canvas id="houseChart"></canvas></div>
+    <div id="houseStatus" class="hint" style="margin-top:8px;"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Performance over selected period</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Currency</th><th>Start</th><th>Latest</th><th>Change</th><th>USD verdict</th>
+        </tr></thead>
+        <tbody id="statsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel info">
+    <h2>📍 Where to find this information (official & free sources)</h2>
+    <div class="note">Currency rates: free, keyless <b>currency-api</b> (<a href="https://github.com/fawazahmed0/exchange-api" target="_blank" style="color:inherit;text-decoration:underline;">fawazahmed0/exchange-api</a>) — every world fiat currency, daily, <b>history from ~March 2024</b> (so currency timeframes are 1D–1Y). Bitcoin all-time price (House panel): <b>Blockchain.com charts API</b> (<a href="https://www.blockchain.com/explorer/charts/market-price" target="_blank" style="color:inherit;text-decoration:underline;">blockchain.com/charts</a>), daily back to 2009. Each point is one day (not intraday ticks).</div>
+    <ul>
+      <li>🇺🇸 <b>Federal Reserve — H.10 Foreign Exchange Rates</b>: <a href="https://www.federalreserve.gov/releases/h10/" target="_blank">federalreserve.gov/releases/h10</a></li>
+      <li>📊 <b>FRED — Broad U.S. Dollar Index (DTWEXBGS)</b>: <a href="https://fred.stlouisfed.org/series/DTWEXBGS" target="_blank">fred.stlouisfed.org/series/DTWEXBGS</a> &nbsp;<span class="hint">— the dashed <b>＄ USD Index</b> line is a DXY-style basket computed from live rates; FRED/ICE are the official references.</span></li>
+      <li>🇪🇺 <b>European Central Bank — Euro reference rates</b>: <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank">ecb.europa.eu</a></li>
+      <li>🇯🇵 <b>Bank of Japan — daily FX rates</b>: <a href="https://www.boj.or.jp/en/statistics/market/forex/fxdaily/index.htm" target="_blank">boj.or.jp</a></li>
+      <li>₿ <b>Blockchain.com — Bitcoin market price</b>: <a href="https://www.blockchain.com/explorer/charts/market-price" target="_blank">blockchain.com/charts</a></li>
+      <li>⏱️ <b>Live intraday (paid/market):</b> <a href="https://tradingeconomics.com/japan/currency" target="_blank">TradingEconomics</a> · <a href="https://www.investing.com/currencies/usd-jpy" target="_blank">Investing.com</a></li>
+    </ul>
+  </div>
+  <div class="hint">Tip: your selection is saved in this browser. If charts fail to load from a <code>file://</code> page, open it through a local server (<code>python -m http.server</code>) — some browsers block fetches from local files.</div>
+</div>
+
+<script>
+// ===== World fiat currencies (ISO 4217, by country) + Bitcoin — NO other crypto, NO metals =====
+const FIAT = {
+  USD:["US Dollar","🇺🇸"],EUR:["Euro","🇪🇺"],JPY:["Japanese Yen","🇯🇵"],GBP:["British Pound","🇬🇧"],
+  AUD:["Australian Dollar","🇦🇺"],CAD:["Canadian Dollar","🇨🇦"],CHF:["Swiss Franc","🇨🇭"],CNY:["Chinese Yuan","🇨🇳"],
+  HKD:["Hong Kong Dollar","🇭🇰"],NZD:["New Zealand Dollar","🇳🇿"],SEK:["Swedish Krona","🇸🇪"],KRW:["South Korean Won","🇰🇷"],
+  SGD:["Singapore Dollar","🇸🇬"],NOK:["Norwegian Krone","🇳🇴"],MXN:["Mexican Peso","🇲🇽"],INR:["Indian Rupee","🇮🇳"],
+  RUB:["Russian Ruble","🇷🇺"],ZAR:["South African Rand","🇿🇦"],TRY:["Turkish Lira","🇹🇷"],BRL:["Brazilian Real","🇧🇷"],
+  TWD:["Taiwan Dollar","🇹🇼"],DKK:["Danish Krone","🇩🇰"],PLN:["Polish Zloty","🇵🇱"],THB:["Thai Baht","🇹🇭"],
+  IDR:["Indonesian Rupiah","🇮🇩"],HUF:["Hungarian Forint","🇭🇺"],CZK:["Czech Koruna","🇨🇿"],ILS:["Israeli Shekel","🇮🇱"],
+  CLP:["Chilean Peso","🇨🇱"],PHP:["Philippine Peso","🇵🇭"],AED:["UAE Dirham","🇦🇪"],COP:["Colombian Peso","🇨🇴"],
+  SAR:["Saudi Riyal","🇸🇦"],MYR:["Malaysian Ringgit","🇲🇾"],RON:["Romanian Leu","🇷🇴"],ARS:["Argentine Peso","🇦🇷"],
+  VND:["Vietnamese Dong","🇻🇳"],NGN:["Nigerian Naira","🇳🇬"],EGP:["Egyptian Pound","🇪🇬"],PKR:["Pakistani Rupee","🇵🇰"],
+  BDT:["Bangladeshi Taka","🇧🇩"],UAH:["Ukrainian Hryvnia","🇺🇦"],PEN:["Peruvian Sol","🇵🇪"],KWD:["Kuwaiti Dinar","🇰🇼"],
+  QAR:["Qatari Riyal","🇶🇦"],KZT:["Kazakhstani Tenge","🇰🇿"],DZD:["Algerian Dinar","🇩🇿"],MAD:["Moroccan Dirham","🇲🇦"],
+  IQD:["Iraqi Dinar","🇮🇶"],BGN:["Bulgarian Lev","🇧🇬"],HRK:["Croatian Kuna","🇭🇷"],ISK:["Icelandic Krona","🇮🇸"],
+  LKR:["Sri Lankan Rupee","🇱🇰"],OMR:["Omani Rial","🇴🇲"],BHD:["Bahraini Dinar","🇧🇭"],JOD:["Jordanian Dinar","🇯🇴"],
+  KES:["Kenyan Shilling","🇰🇪"],GHS:["Ghanaian Cedi","🇬🇭"],TND:["Tunisian Dinar","🇹🇳"],LBP:["Lebanese Pound","🇱🇧"],
+  MMK:["Myanmar Kyat","🇲🇲"],NPR:["Nepalese Rupee","🇳🇵"],UYU:["Uruguayan Peso","🇺🇾"],RSD:["Serbian Dinar","🇷🇸"],
+  AZN:["Azerbaijani Manat","🇦🇿"],GEL:["Georgian Lari","🇬🇪"],BYN:["Belarusian Ruble","🇧🇾"],BAM:["Bosnia-Herzegovina Mark","🇧🇦"],
+  PYG:["Paraguayan Guarani","🇵🇾"],BOB:["Bolivian Boliviano","🇧🇴"],CRC:["Costa Rican Colon","🇨🇷"],GTQ:["Guatemalan Quetzal","🇬🇹"],
+  DOP:["Dominican Peso","🇩🇴"],HNL:["Honduran Lempira","🇭🇳"],PAB:["Panamanian Balboa","🇵🇦"],NIO:["Nicaraguan Cordoba","🇳🇮"],
+  JMD:["Jamaican Dollar","🇯🇲"],TTD:["Trinidad & Tobago Dollar","🇹🇹"],XCD:["East Caribbean Dollar","🌴"],BSD:["Bahamian Dollar","🇧🇸"],
+  BBD:["Barbadian Dollar","🇧🇧"],BMD:["Bermudian Dollar","🇧🇲"],KYD:["Cayman Islands Dollar","🇰🇾"],AWG:["Aruban Florin","🇦🇼"],
+  ANG:["Neth. Antillean Guilder","🇨🇼"],XOF:["West African CFA Franc","🌍"],XAF:["Central African CFA Franc","🌍"],XPF:["CFP Franc","🇵🇫"],
+  MUR:["Mauritian Rupee","🇲🇺"],MGA:["Malagasy Ariary","🇲🇬"],UGX:["Ugandan Shilling","🇺🇬"],TZS:["Tanzanian Shilling","🇹🇿"],
+  ETB:["Ethiopian Birr","🇪🇹"],AOA:["Angolan Kwanza","🇦🇴"],ZMW:["Zambian Kwacha","🇿🇲"],MZN:["Mozambican Metical","🇲🇿"],
+  BWP:["Botswana Pula","🇧🇼"],NAD:["Namibian Dollar","🇳🇦"],MWK:["Malawian Kwacha","🇲🇼"],RWF:["Rwandan Franc","🇷🇼"],
+  CDF:["Congolese Franc","🇨🇩"],GNF:["Guinean Franc","🇬🇳"],SOS:["Somali Shilling","🇸🇴"],SDG:["Sudanese Pound","🇸🇩"],
+  LYD:["Libyan Dinar","🇱🇾"],SYP:["Syrian Pound","🇸🇾"],YER:["Yemeni Rial","🇾🇪"],AFN:["Afghan Afghani","🇦🇫"],
+  IRR:["Iranian Rial","🇮🇷"],UZS:["Uzbekistani Som","🇺🇿"],TMT:["Turkmenistani Manat","🇹🇲"],KGS:["Kyrgyzstani Som","🇰🇬"],
+  TJS:["Tajikistani Somoni","🇹🇯"],MNT:["Mongolian Tugrik","🇲🇳"],LAK:["Lao Kip","🇱🇦"],KHR:["Cambodian Riel","🇰🇭"],
+  BND:["Brunei Dollar","🇧🇳"],MOP:["Macanese Pataca","🇲🇴"],MVR:["Maldivian Rufiyaa","🇲🇻"],BTN:["Bhutanese Ngultrum","🇧🇹"],
+  FJD:["Fijian Dollar","🇫🇯"],PGK:["Papua New Guinean Kina","🇵🇬"],SBD:["Solomon Islands Dollar","🇸🇧"],TOP:["Tongan Pa'anga","🇹🇴"],
+  VUV:["Vanuatu Vatu","🇻🇺"],WST:["Samoan Tala","🇼🇸"],SCR:["Seychellois Rupee","🇸🇨"],CVE:["Cape Verdean Escudo","🇨🇻"],
+  GMD:["Gambian Dalasi","🇬🇲"],GYD:["Guyanese Dollar","🇬🇾"],SRD:["Surinamese Dollar","🇸🇷"],BZD:["Belize Dollar","🇧🇿"],
+  HTG:["Haitian Gourde","🇭🇹"],CUP:["Cuban Peso","🇨🇺"],VES:["Venezuelan Bolivar","🇻🇪"],ALL:["Albanian Lek","🇦🇱"],
+  MKD:["Macedonian Denar","🇲🇰"],MDL:["Moldovan Leu","🇲🇩"],AMD:["Armenian Dram","🇦🇲"],LRD:["Liberian Dollar","🇱🇷"],
+  SLL:["Sierra Leonean Leone","🇸🇱"],DJF:["Djiboutian Franc","🇩🇯"],KMF:["Comorian Franc","🇰🇲"],ERN:["Eritrean Nakfa","🇪🇷"],
+  SSP:["South Sudanese Pound","🇸🇸"],STN:["Sao Tome & Principe Dobra","🇸🇹"],SZL:["Eswatini Lilangeni","🇸🇿"],LSL:["Lesotho Loti","🇱🇸"],
+  BIF:["Burundian Franc","🇧🇮"],MRU:["Mauritanian Ouguiya","🇲🇷"],GIP:["Gibraltar Pound","🇬🇮"],FKP:["Falkland Islands Pound","🇫🇰"],
+  SHP:["Saint Helena Pound","🇸🇭"],ZWL:["Zimbabwean Dollar","🇿🇼"]
+};
+const PALETTE = ["#3b82f6","#16c784","#f59e0b","#ec4899","#8b5cf6","#06b6d4","#ef4444","#84cc16","#f97316","#14b8a6"];
+const BTC_COLOR = "#f7931a"; // Bitcoin orange
+function colorOf(c,i){ return c==="BTC" ? BTC_COLOR : PALETTE[i%PALETTE.length]; }
+const TF = { "1D":1, "1W":7, "1M":30, "1Y":365 };   // span in days (currency history starts 2024)
+const PTS = { "1D":2, "1W":7, "1M":16, "1Y":27 };   // sample points per timeframe
+const TF_ORDER = ["1D","1W","1M","1Y"];
+const DXY = { EUR:0.576, JPY:0.136, GBP:0.119, CAD:0.091, SEK:0.042, CHF:0.036 };
+const INDEX_COLOR = "#eab308";
+const CDN = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api";
+const HIST_FLOOR = "2024-03-06";
+const STATE_VERSION = 4;
+
+let CUR = {}; // built at init: FIAT (available) + BTC
+
+// ---- State (persisted) ----
+const saved = JSON.parse(localStorage.getItem("fxState")||"null");
+const state = Object.assign(
+  { base:"USD", selected:[], tf:"1Y", mode:"pct", theme:"dark", showIndex:false, v:0 },
+  saved||{});
+const freshVersion = state.v !== STATE_VERSION; // new version → default to ALL selected
+function save(){ state.v=STATE_VERSION; localStorage.setItem("fxState", JSON.stringify(state)); }
+
+let chart, houseChart, lastData=null, BTC_HISTORY=null;
+const $ = id => document.getElementById(id);
+
+// ===================== Controls =====================
+function buildTF(){
+  $("tfBtns").innerHTML = TF_ORDER.map(t =>
+    `<button class="tf ${t===state.tf?'active':''}" data-tf="${t}">${t}</button>`).join("");
+  document.querySelectorAll("button.tf").forEach(b=>b.onclick=()=>{state.tf=b.dataset.tf;save();buildTF();load();});
+}
+function buildBase(){
+  $("baseSel").innerHTML = Object.keys(CUR).map(c=>
+    `<option value="${c}" ${c===state.base?'selected':''}>${CUR[c][1]} ${c}</option>`).join("");
+  $("baseSel").onchange = e=>{
+    state.base=e.target.value;
+    state.selected=state.selected.filter(c=>c!==state.base);
+    save();buildChips();buildPicker();load();
+  };
+}
+function buildChips(){
+  $("chips").innerHTML = state.selected.map((c,i)=>
+    `<span class="chip"><span class="dot" style="background:${colorOf(c,i)}"></span>${CUR[c][1]} ${c}
+      <span class="x" data-c="${c}">×</span></span>`).join("") || `<span class="hint">None selected — click currencies above to add.</span>`;
+  document.querySelectorAll(".chip .x").forEach(x=>x.onclick=()=>toggle(x.dataset.c));
+}
+function buildPicker(){
+  const q = ($("search").value||"").toLowerCase().trim();
+  const codes = Object.keys(CUR).filter(c=>c!==state.base);
+  const filtered = codes.filter(c=> !q || c.toLowerCase().includes(q) || (CUR[c][0]||"").toLowerCase().includes(q));
+  $("picker").innerHTML = filtered.map(c=>{
+    const sel = state.selected.includes(c);
+    return `<button class="pick ${sel?'sel':''}" data-c="${c}">${CUR[c][1]} ${c}</button>`;
+  }).join("") || `<span class="hint">No match.</span>`;
+  document.querySelectorAll(".pick").forEach(b=>b.onclick=()=>toggle(b.dataset.c));
+  $("pickCount").textContent = `${state.selected.length} selected · ${codes.length} available`;
+}
+function toggle(c){
+  if(state.selected.includes(c)) state.selected = state.selected.filter(x=>x!==c);
+  else state.selected.push(c);
+  save(); buildChips(); buildPicker(); load();
+}
+$("search").oninput = ()=> buildPicker();
+$("allBtn").onclick = ()=>{ state.selected = Object.keys(CUR).filter(c=>c!==state.base); save(); buildChips(); buildPicker(); load(); };
+$("clearBtn").onclick = ()=>{ state.selected = []; save(); buildChips(); buildPicker(); load(); };
+document.querySelectorAll("button.mode").forEach(b=>b.onclick=()=>{
+  state.mode=b.dataset.mode; save();
+  document.querySelectorAll("button.mode").forEach(x=>x.classList.toggle("active",x.dataset.mode===state.mode));
+  render();
+});
+
+// ===================== Currency data (currency-api) =====================
+function fmtDate(d){ return d.toISOString().slice(0,10); }
+function sampleDates(tf){
+  const span=TF[tf], pts=PTS[tf], today=new Date(), out=[];
+  for(let i=pts-1;i>=1;i--){ const d=new Date(today); d.setDate(d.getDate()-Math.round(span*i/(pts-1)));
+    const s=fmtDate(d); if(s>=HIST_FLOOR) out.push(s); }
+  return [...new Set(out)].sort();
+}
+async function fetchDay(tag, base){
+  try{ const r=await fetch(`${CDN}@${tag}/v1/currencies/${base}.json`); if(!r.ok) return null;
+    const j=await r.json(); return {date:j.date, rates:j[base]}; }catch(e){ return null; }
+}
+async function load(){
+  if(state.selected.length===0 && !state.showIndex){ lastData=null; render(); $("status").textContent="Select a currency to begin."; return; }
+  $("status").textContent="Loading rates…";
+  const base = (state.showIndex ? "USD" : state.base).toLowerCase();
+  try{
+    const days = sampleDates(state.tf);
+    const results = await Promise.all([ ...days.map(d=>fetchDay(d, base)), fetchDay("latest", base) ]);
+    const rawByDate = {};
+    results.forEach(r=>{ if(r && r.rates) rawByDate[r.date]=r.rates; });
+    const dates = Object.keys(rawByDate).sort();
+    lastData = { dates, rawByDate };
+    render();
+    $("status").textContent = dates.length
+      ? `${dates.length} sampled points · ${dates[0]} → ${dates[dates.length-1]} · base ${base.toUpperCase()} · source: currency-api (history from 2024)`
+      : "No data returned.";
+  }catch(err){
+    $("status").innerHTML = `<span class="neg">Couldn't load data.</span> Check your connection, or serve via a local web server. ${err}`;
+  }
+}
+
+// ===================== Render currency chart =====================
+function render(){
+  let hint = state.mode==="pct"
+    ? "Showing % change since period start — best for comparing strength across currencies."
+    : `Showing how many units of each currency 1 ${state.base} buys.`;
+  if(state.showIndex && state.mode==="pct") hint += " · ＄ USD Index = DXY-style trade-weighted basket.";
+  if(state.showIndex && state.mode!=="pct") hint += " · (USD Index shows only in % view.)";
+  if(state.showIndex) hint += " Base forced to USD while index is on.";
+  $("modeHint").textContent = hint;
+  if(!lastData){ if(chart){chart.destroy();chart=null;} $("statsBody").innerHTML=""; $("overall").innerHTML=""; return; }
+  const {dates,rawByDate} = lastData;
+  const base = state.showIndex ? "USD" : state.base;
+  const series = {};
+  state.selected.forEach(c=> series[c]=dates.map(d=> rawByDate[d]?.[c.toLowerCase()] ?? null));
+  const datasets = state.selected.map((c,i)=>{
+    const raw = series[c] || dates.map(()=>null);
+    let data = raw;
+    if(state.mode==="pct"){ const b0=raw.find(v=>v!=null); data = raw.map(v=> v==null?null:(v/b0-1)*100); }
+    return { label:`${CUR[c][1]} ${c}`, data, borderColor:colorOf(c,i), backgroundColor:colorOf(c,i),
+      borderWidth:c==="BTC"?3:2, pointRadius:0, tension:.15, spanGaps:true };
+  });
+  if(state.showIndex && state.mode==="pct"){
+    const idx = dates.map(()=>null); let firstVals=null;
+    dates.forEach((d,j)=>{
+      let ok=true,val=1;
+      for(const c in DXY){ const r=rawByDate[d]?.[c.toLowerCase()]; if(r==null){ok=false;break;} }
+      if(!ok) return;
+      if(!firstVals){ firstVals={}; for(const c in DXY) firstVals[c]=rawByDate[d][c.toLowerCase()]; }
+      for(const c in DXY) val *= Math.pow(rawByDate[d][c.toLowerCase()]/firstVals[c], DXY[c]);
+      idx[j]=(val-1)*100;
+    });
+    datasets.unshift({ label:"＄ USD Index (DXY-style)", data:idx, borderColor:INDEX_COLOR,
+      backgroundColor:INDEX_COLOR, borderWidth:3, borderDash:[6,3], pointRadius:0, tension:.15, spanGaps:true });
+  }
+  const tc=themeColors(), many=datasets.length>25;
+  const fmtVal = v => Math.abs(v)>=100?v.toFixed(2):Math.abs(v)>=1?v.toFixed(4):Math.abs(v)>=0.0001?v.toFixed(6):v.toExponential(3);
+  if(chart) chart.destroy();
+  chart = new Chart($("chart"), {
+    type:"line", data:{ labels:dates, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      interaction:{mode:many?"nearest":"index",intersect:false},
+      plugins:{
+        legend:{display:!many, labels:{color:tc.t,usePointStyle:true,boxHeight:7}},
+        tooltip:{callbacks:{label:ctx=>{ const v=ctx.parsed.y; if(v==null)return"";
+          return state.mode==="pct" ? `${ctx.dataset.label}: ${v>=0?"+":""}${v.toFixed(2)}%` : `${ctx.dataset.label}: ${fmtVal(v)}`; }}}
+      },
+      scales:{ x:{ticks:{color:tc.m,maxTicksLimit:9,autoSkip:true},grid:{color:tc.g}},
+        y:{ticks:{color:tc.m,callback:v=> state.mode==="pct"?v+"%":v},grid:{color:tc.g}} }
+    }
+  });
+
+  // stats table + summary
+  const moves=[];
+  $("statsBody").innerHTML = state.selected.map((c,i)=>{
+    const raw=(series[c]||[]).filter(v=>v!=null);
+    if(raw.length<2) return `<tr><td>${CUR[c][1]} ${c}</td><td colspan="4" class="hint">no data</td></tr>`;
+    const a=raw[0], b=raw[raw.length-1], pct=(b/a-1)*100, stronger=pct>0, cls=stronger?"pos":"neg";
+    moves.push({c,pct,stronger});
+    return `<tr><td><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${colorOf(c,i)};margin-right:7px;"></span>${CUR[c][1]} ${c}</td>
+      <td>${fmtVal(a)}</td><td>${fmtVal(b)}</td>
+      <td class="${cls}">${pct>=0?"+":""}${pct.toFixed(2)}%</td>
+      <td class="${cls}"><span class="arrow">${stronger?"▲":"▼"}</span> ${base} ${stronger?"stronger":"weaker"}</td></tr>`;
+  }).join("");
+  renderSummary(moves, base);
+}
+function renderSummary(moves, base){
+  const el=$("overall");
+  if(!moves.length){ el.innerHTML=`<span class="hint">No data to summarize.</span>`; return; }
+  const up=moves.filter(m=>m.stronger).length, down=moves.length-up;
+  const avg=moves.reduce((s,m)=>s+m.pct,0)/moves.length;
+  const best=moves.reduce((a,m)=>m.pct>a.pct?m:a), worst=moves.reduce((a,m)=>m.pct<a.pct?m:a);
+  const tfName={"1D":"1 day","1W":"1 week","1M":"1 month","1Y":"1 year"}[state.tf];
+  let idxCard="";
+  if(state.showIndex && state.mode==="pct" && chart){
+    const ds=chart.data.datasets.find(d=>d.label.includes("USD Index"));
+    const v=ds?[...ds.data].reverse().find(x=>x!=null):null;
+    if(v!=null) idxCard=card("USD Index (DXY-style)",`${v>=0?"+":""}${v.toFixed(2)}%`,"trade-weighted basket",v>=0?"pos":"neg");
+  }
+  el.innerHTML =
+    card(`${base} stronger vs`,`${up} / ${moves.length}`,`weaker vs ${down}`,up>=down?"pos":"neg") +
+    card("Average move",`${avg>=0?"+":""}${avg.toFixed(2)}%`,`over ${tfName}`,avg>=0?"pos":"neg") +
+    card(`Biggest ${base} gain`,`${best.pct>=0?"+":""}${best.pct.toFixed(2)}%`,`vs ${CUR[best.c][1]} ${best.c}`,"pos") +
+    card(`Biggest ${base} drop`,`${worst.pct>=0?"+":""}${worst.pct.toFixed(2)}%`,`vs ${CUR[worst.c][1]} ${worst.c}`,"neg") +
+    idxCard;
+}
+function card(k,v,d,cls){ return `<div class="scard"><div class="k">${k}</div><div class="v ${cls||""}">${v}</div><div class="d">${d}</div></div>`; }
+
+// ===================== House priced in Bitcoin (all-time, blockchain.info) =====================
+async function loadBTCHistory(){
+  $("houseStatus").textContent="Loading Bitcoin price history…";
+  try{
+    const r=await fetch("https://api.blockchain.info/charts/market-price?timespan=all&format=json&cors=true");
+    const j=await r.json();
+    BTC_HISTORY = j.values.map(p=>({date:new Date(p.x*1000).toISOString().slice(0,10), price:p.y})).filter(p=>p.price>0);
+  }catch(e){ BTC_HISTORY=null; }
+  renderHouse();
+}
+function yearHigh(y){ let m=null; BTC_HISTORY.forEach(p=>{ if(p.date.slice(0,4)==(""+y) && (!m||p.price>m.price)) m=p; }); return m; }
+function yearLow(y){ let m=null; BTC_HISTORY.forEach(p=>{ if(p.date.slice(0,4)==(""+y) && (!m||p.price<m.price)) m=p; }); return m; }
+function money(n){ return "$"+Math.round(n).toLocaleString("en-US"); }
+function renderHouse(){
+  if(!BTC_HISTORY || !BTC_HISTORY.length){ $("houseStatus").textContent="Bitcoin history unavailable (check connection)."; return; }
+  const house=Math.max(1, +$("housePrice").value||450000);
+  const inBtc=(price)=> (house/price).toFixed(2)+" BTC";
+  const lo22=yearLow(2022), h25=yearHigh(2025), cur=BTC_HISTORY[BTC_HISTORY.length-1];
+  const ath=BTC_HISTORY.reduce((a,p)=>p.price>a.price?p:a);
+  $("houseCards").innerHTML =
+    card("2022 low", inBtc(lo22.price), `BTC ${money(lo22.price)} · ${lo22.date}`, "neg") +
+    card("2025 high", inBtc(h25.price), `BTC ${money(h25.price)} · ${h25.date}`, "pos") +
+    card("Current", inBtc(cur.price), `BTC ${money(cur.price)} · ${cur.date}`) +
+    card("All-time high BTC", inBtc(ath.price), `BTC ${money(ath.price)} · ${ath.date}`, "pos");
+  // all-time chart: BTC needed to buy the house (log scale handles the huge early range)
+  const pts = BTC_HISTORY.filter(p=>p.date>="2011-01-01");
+  const tc=themeColors();
+  if(houseChart) houseChart.destroy();
+  houseChart = new Chart($("houseChart"), {
+    type:"line",
+    data:{ labels:pts.map(p=>p.date), datasets:[{ label:`BTC to buy a ${money(house)} house`,
+      data:pts.map(p=>house/p.price), borderColor:BTC_COLOR, backgroundColor:BTC_COLOR,
+      borderWidth:2, pointRadius:0, tension:.1 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      interaction:{mode:"index",intersect:false},
+      plugins:{ legend:{labels:{color:tc.t,usePointStyle:true,boxHeight:7}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y.toFixed(2)} BTC  (BTC ${money(house/ctx.parsed.y)})`}} },
+      scales:{ x:{ticks:{color:tc.m,maxTicksLimit:10,autoSkip:true},grid:{color:tc.g}},
+        y:{type:"logarithmic",ticks:{color:tc.m,callback:v=>v+" BTC"},grid:{color:tc.g},title:{display:true,text:"BTC to buy the house (log)",color:tc.m}} }
+    }
+  });
+  $("houseStatus").textContent = `A ${money(house)} house: ${inBtc(lo22.price)} at the 2022 low → ${inBtc(h25.price)} at the 2025 high → ${inBtc(cur.price)} today. Bitcoin data: blockchain.com (2009–${cur.date}).`;
+}
+$("housePrice").oninput = ()=> renderHouse();
+
+// ===================== Theme / Index / CSV =====================
+function themeColors(){ return state.theme==="light"
+  ? {t:"#1f2937",m:"#5b6675",g:"#e5e7eb"} : {t:"#e6edf3",m:"#8b97a7",g:"#1c2430"}; }
+function applyTheme(){
+  document.documentElement.setAttribute("data-theme", state.theme);
+  $("themeBtn").textContent = state.theme==="light" ? "☀️ Light" : "🌙 Dark";
+}
+$("themeBtn").onclick = ()=>{ state.theme=state.theme==="light"?"dark":"light"; save(); applyTheme(); render(); if(BTC_HISTORY) renderHouse(); };
+function syncIdxBtn(){ $("idxBtn").classList.toggle("active", state.showIndex); }
+$("idxBtn").onclick = ()=>{
+  state.showIndex=!state.showIndex;
+  if(state.showIndex){ state.base="USD"; buildBase(); buildPicker(); }
+  save(); syncIdxBtn(); load();
+};
+$("csvBtn").onclick = ()=>{
+  if(!lastData) return;
+  const b=state.showIndex?"USD":state.base, cols=[...state.selected];
+  const rows=[["Date",...cols.map(c=>`${b}/${c}`)].join(",")];
+  lastData.dates.forEach(d=>{ rows.push([d,...cols.map(c=> lastData.rawByDate[d]?.[c.toLowerCase()] ?? "")].join(",")); });
+  const blob=new Blob([rows.join("\n")],{type:"text/csv"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`rates-${state.tf}-${lastData.dates[lastData.dates.length-1]}.csv`; a.click(); URL.revokeObjectURL(a.href);
+};
+
+// ===================== Init =====================
+applyTheme(); syncIdxBtn();
+document.querySelectorAll("button.mode").forEach(x=>x.classList.toggle("active",x.dataset.mode===state.mode));
+(async()=>{
+  $("status").textContent="Loading currency list…";
+  let avail=null;
+  try{ const usd=await (await fetch(`${CDN}@latest/v1/currencies/usd.json`)).json(); avail=new Set(Object.keys(usd.usd)); }catch(e){}
+  CUR={};
+  Object.keys(FIAT).forEach(C=>{ if(!avail || avail.has(C.toLowerCase())) CUR[C]=FIAT[C]; });
+  CUR.BTC=["Bitcoin","🟠"]; // the only crypto
+  if(!CUR[state.base]) state.base="USD";
+  if(!TF_ORDER.includes(state.tf)) state.tf="1Y";
+  if(freshVersion || !Array.isArray(state.selected) || !state.selected.length){
+    state.selected = Object.keys(CUR).filter(c=>c!==state.base); // default: ALL selected
+  } else {
+    state.selected = state.selected.filter(c=>CUR[c]);
+  }
+  save();
+  buildTF(); buildBase(); buildChips(); buildPicker();
+  load();
+  loadBTCHistory();
+})();
+</script>
+</body>
+</html>
